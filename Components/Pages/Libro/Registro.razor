@@ -1,0 +1,235 @@
+﻿@page "/libros/crear"
+@page "/libros/editar/{LibroId:int}"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.Forms
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+
+@inject LibroService Servicio
+@inject NavigationManager Navegacion
+
+<PageTitle>Registro de libros</PageTitle>
+
+<h3>@(LibroId == 0 ? "Crear libro" : "Modificar libro")</h3>
+
+@if (cargando)
+{
+    <p>Cargando...</p>
+}
+else if (noEncontrado)
+{
+    <div class="alert alert-warning">
+        No se encontro el libro.
+    </div>
+
+    <a class="btn btn-secondary" href="/libros">
+        Volver
+    </a>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="alert alert-danger" role="alert">
+            @mensaje
+        </div>
+    }
+
+    <EditForm Model="libro"
+              OnValidSubmit="Guardar"
+              FormName="FormularioLibro">
+
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="libroId" class="form-label">
+                LibroId
+            </label>
+
+            <input id="libroId"
+                   class="form-control"
+                   value="@libro.LibroId"
+                   disabled />
+
+            @if (LibroId == 0)
+            {
+                <small class="text-muted">
+                    El ID se genera automaticamente al guardar.
+                </small>
+            }
+        </div>
+
+        <div class="mb-3">
+            <label for="titulo" class="form-label">
+                Titulo
+            </label>
+
+            <InputText id="titulo"
+                       class="form-control"
+                       @bind-Value="libro.Titulo" />
+
+            <ValidationMessage For="@(() => libro.Titulo)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="autor" class="form-label">
+                Autor
+            </label>
+
+            <InputText id="autor"
+                       class="form-control"
+                       @bind-Value="libro.Autor" />
+
+            <ValidationMessage For="@(() => libro.Autor)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="ano" class="form-label">
+                Ano de publicacion
+            </label>
+
+            <InputNumber id="ano"
+                         class="form-control"
+                         @bind-Value="libro.AnoPublicacion" />
+
+            <ValidationMessage For="@(() => libro.AnoPublicacion)" />
+        </div>
+
+        <a class="btn btn-secondary" href="/libros">
+            Volver
+        </a>
+
+        <button type="submit"
+                class="btn btn-primary"
+                disabled="@ocupado">
+            @(LibroId == 0 ? "Guardar" : "Modificar")
+        </button>
+
+        @if (LibroId > 0)
+        {
+            <button type="button"
+                    class="btn btn-danger"
+                    disabled="@ocupado"
+                    @onclick="PedirEliminar">
+                Eliminar
+            </button>
+        }
+    </EditForm>
+
+    @if (confirmarEliminar)
+    {
+        <div class="alert alert-warning mt-3">
+            <p>¿Deseas eliminar el libro «@libro.Titulo»?</p>
+
+            <button type="button"
+                    class="btn btn-danger"
+                    disabled="@ocupado"
+                    @onclick="Eliminar"> Si, eliminar
+            </button>
+
+            <button type="button"
+                    class="btn btn-secondary"
+                    disabled="@ocupado"
+                    @onclick="CancelarEliminar"> Cancelar
+            </button>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public int LibroId { get; set; }
+
+    private Libro libro = new();
+    private string mensaje = string.Empty;
+    private bool cargando = true;
+    private bool noEncontrado;
+    private bool ocupado;
+    private bool confirmarEliminar;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        cargando = true;
+        noEncontrado = false;
+        mensaje = string.Empty;
+        confirmarEliminar = false;
+
+        if (LibroId == 0)
+        {
+            libro = new Libro();
+        }
+        else
+        {
+            var encontrado = await Servicio.Buscar(LibroId);
+
+            if (encontrado is null)
+            {
+                noEncontrado = true;
+            }
+            else
+            {
+                libro = encontrado;
+            }
+        }
+
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        if (ocupado)
+            return;
+
+        ocupado = true;
+        mensaje = string.Empty;
+
+        try
+        {
+            bool guardado = await Servicio.Guardar(libro);
+
+            if (guardado)
+            {
+                Navegacion.NavigateTo("/libros");
+            }
+            else
+            {
+                mensaje = "Ya tienes un libro con este titulo";
+            }
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+
+    private void PedirEliminar()
+    {
+        confirmarEliminar = true;
+    }
+
+    private void CancelarEliminar()
+    {
+        confirmarEliminar = false;
+    }
+
+    private async Task Eliminar()
+    {
+        if (ocupado)
+            return;
+
+        ocupado = true;
+
+        try
+        {
+            await Servicio.Eliminar(libro.LibroId);
+            Navegacion.NavigateTo("/libros");
+        }
+        finally
+        {
+            ocupado = false;
+        }
+    }
+}
