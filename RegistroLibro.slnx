@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="RegistroLibro.csproj" />
+  <Project Path="RegistroLibro.Tests/RegistroLibro.Tests.csproj" />
+</Solution>

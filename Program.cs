@@ -12,6 +12,7 @@ builder.Services.AddScoped<LibroService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+
 var app = builder.Build();
 
 
