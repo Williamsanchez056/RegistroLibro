@@ -14,6 +14,6 @@ public class Libro
     public string Autor { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Debes de introducir el año de publicación.")]
-    [Range(1999, 2026, ErrorMessage = "Escribe un año entre 1999 y 2026.")]
+    [Range(1999, 2026, ErrorMessage = "Escribe un año entre 1 y 2026.")]
     public int? AnoPublicacion { get; set; }
 }

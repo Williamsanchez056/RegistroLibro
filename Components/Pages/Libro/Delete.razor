@@ -1,0 +1,123 @@
+﻿@page "/libros/eliminar/{LibroId:int}"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@inject LibroService Servicio
+@inject NavigationManager Navegacion
+
+<PageTitle>Eliminar libro</PageTitle>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-danger text-white">
+        <h3 class="mb-0">Eliminar libro</h3>
+    </div>
+
+    <div class="card-body">
+        @if (cargando)
+        {
+            <p>Cargando libro...</p>
+        }
+        else if (libro is null)
+        {
+            <div class="alert alert-warning">
+                No se encontro el libro.
+            </div>
+
+            <a class="btn btn-secondary" href="/libros">
+                Volver
+            </a>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                ¿Seguro que deseas eliminar este libro?
+                Esta accion no se puede deshacer.
+            </div>
+
+            @if (!string.IsNullOrEmpty(mensaje))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @mensaje
+                </div>
+            }
+
+            <dl class="row">
+                <dt class="col-sm-4">ID</dt>
+                <dd class="col-sm-8">@libro.LibroId</dd>
+
+                <dt class="col-sm-4">Titulo</dt>
+                <dd class="col-sm-8">@libro.Titulo</dd>
+
+                <dt class="col-sm-4">Autor</dt>
+                <dd class="col-sm-8">@libro.Autor</dd>
+
+                <dt class="col-sm-4">Año de publicacion</dt>
+                <dd class="col-sm-8">@libro.AnoPublicacion</dd>
+            </dl>
+
+            <button type="button"
+                    class="btn btn-danger"
+                    @onclick="Eliminar"
+                    disabled="@eliminando">
+                @(eliminando ? "Eliminando..." : "Confirmar eliminacion")
+            </button>
+
+            <a class="btn btn-secondary" href="/libros">
+                Cancelar
+            </a>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int LibroId { get; set; }
+
+    private Libro? libro;
+    private bool cargando = true;
+    private bool eliminando;
+    private string mensaje = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        cargando = true;
+        mensaje = "";
+
+        try
+        {
+            libro = await Servicio.Buscar(LibroId);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task Eliminar()
+    {
+        if (libro is null || eliminando)
+            return;
+
+        eliminando = true;
+        mensaje = "";
+
+        try
+        {
+            if (await Servicio.Eliminar(LibroId))
+            {
+                Navegacion.NavigateTo("/libros");
+            }
+            else
+            {
+                mensaje = "No se pudo eliminar. El libro ya no existe.";
+            }
+        }
+        finally
+        {
+            eliminando = false;
+        }
+    }
+}

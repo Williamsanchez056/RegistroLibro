@@ -1,0 +1,105 @@
+﻿@page "/libros/crear"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.Forms
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@inject LibroService Servicio
+
+<PageTitle>Crear libro</PageTitle>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">Crear libro</h3>
+    </div>
+
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(mensaje))
+        {
+            <div class="alert @tipoAlerta" role="alert">
+                @mensaje
+            </div>
+        }
+
+        <EditForm Model="libro"
+                  OnValidSubmit="Guardar"
+                  FormName="CrearLibro"
+                  @key="libro">
+
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="titulo" class="form-label">Titulo</label>
+                <InputText id="titulo"
+                           class="form-control"
+                           @bind-Value="libro.Titulo" />
+                <ValidationMessage For="@(() => libro.Titulo)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="autor" class="form-label">Autor</label>
+                <InputText id="autor"
+                           class="form-control"
+                           @bind-Value="libro.Autor" />
+                <ValidationMessage For="@(() => libro.Autor)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="ano" class="form-label">
+                    Año de publicacion
+                </label>
+                <InputNumber id="ano"
+                             class="form-control"
+                             @bind-Value="libro.AnoPublicacion" />
+                <ValidationMessage For="@(() => libro.AnoPublicacion)" />
+            </div>
+
+            <button type="submit"
+                    class="btn btn-success"
+                    disabled="@guardando">
+                @(guardando ? "Guardando..." : "Guardar")
+            </button>
+
+            <a class="btn btn-secondary" href="/libros">
+                Volver
+            </a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Libro libro = new();
+    private string mensaje = "";
+    private string tipoAlerta = "alert-danger";
+    private bool guardando;
+
+    private async Task Guardar()
+    {
+        if (guardando)
+            return;
+
+        guardando = true;
+        mensaje = "";
+
+        try
+        {
+            if (await Servicio.Guardar(libro))
+            {
+                tipoAlerta = "alert-success";
+                mensaje = "Libro guardado correctamente.";
+                libro = new();
+            }
+            else
+            {
+                tipoAlerta = "alert-danger";
+                mensaje = "Ya existe un libro con ese titulo.";
+            }
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+}

@@ -7,126 +7,154 @@
 
 <PageTitle>Consulta de libros</PageTitle>
 
-<h3>Consulta de libros</h3>
-
-<a class="btn btn-primary mb-3" href="/libros/crear">
-    Crear libro
-</a>
-
-<div class="row mb-3">
-    <div class="col-md-3">
-        <label for="filtro" class="form-label">Filtrar por</label>
-
-        <select id="filtro" class="form-select" @bind="filtro">
-            <option value="Titulo">Titulo</option>
-            <option value="Autor">Autor</option>
-            <option value="LibroId">LibroId</option>
-            <option value="AnoPublicacion">Ano de publicacion</option>
-        </select>
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">Consulta de libros</h3>
     </div>
 
-    <div class="col-md-6">
-        <label for="busqueda" class="form-label">Busqueda</label>
+    <div class="card-body">
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Filtrar por</label>
+                <select class="form-select" @bind="filtro">
+                    <option value="Titulo">Titulo</option>
+                    <option value="Autor">Autor</option>
+                    <option value="LibroId">ID</option>
+                    <option value="AnoPublicacion">Año de publicacion</option>
+                </select>
+            </div>
 
-        <input id="busqueda"
-               class="form-control"
-               @bind="busqueda"
-               placeholder="Escribe para buscar" />
-    </div>
+            <div class="col-md-5">
+                <label class="form-label">Buscar</label>
+                <input class="form-control"
+                       @bind="busqueda"
+                       placeholder="Escribe tu busqueda" />
+            </div>
 
-    <div class="col-md-3 d-flex align-items-end">
-        <button class="btn btn-success" @onclick="Buscar">
-            Buscar
-        </button>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button class="btn btn-primary" @onclick="Buscar">
+                    Buscar
+                </button>
+
+                <button class="btn btn-secondary" @onclick="Restablecer">
+                    Restablecer
+                </button>
+            </div>
+        </div>
+
+        <a class="btn btn-success mb-3" href="/libros/crear">
+            Crear libro
+        </a>
+
+        @if (cargando)
+        {
+            <p>Cargando libros...</p>
+        }
+        else if (libros.Count == 0)
+        {
+            <div class="alert alert-info">
+                No se encontraron libros.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Titulo</th>
+                            <th>Autor</th>
+                            <th>Año de publicacion</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var libro in libros)
+                        {
+                            <tr @key="libro.LibroId">
+                                <td>@libro.LibroId</td>
+                                <td>@libro.Titulo</td>
+                                <td>@libro.Autor</td>
+                                <td>@libro.AnoPublicacion</td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a class="btn btn-warning btn-sm"
+                                           href="@($"/libros/editar/{libro.LibroId}")">
+                                            Editar
+                                        </a>
+
+                                        <a class="btn btn-danger btn-sm"
+                                           href="@($"/libros/eliminar/{libro.LibroId}")">
+                                            Eliminar
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-muted">Total: @libros.Count libros</p>
+        }
     </div>
 </div>
-
-@if (cargando)
-{
-    <p>Cargando tus libros...</p>
-}
-else
-{
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>LibroId</th>
-                <th>Titulo</th>
-                <th>Autor</th>
-                <th>Ano de publicacion</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            @foreach (var libro in libros)
-            {
-                <tr>
-                    <td>@libro.LibroId</td>
-                    <td>@libro.Titulo</td>
-                    <td>@libro.Autor</td>
-                    <td>@libro.AnoPublicacion</td>
-                    <td>
-                        <a class="btn btn-warning btn-sm"
-                           href="@($"/libros/editar/{libro.LibroId}")">
-                            Editar
-                        </a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-
-    @if (libros.Count == 0)
-    {
-        <p>No se encontraron tus libros.</p>
-    }
-
-    <p><strong>Cantidad: @libros.Count</strong></p>
-}
 
 @code {
     private List<Libro> libros = new();
     private string filtro = "Titulo";
-    private string busqueda = string.Empty;
+    private string busqueda = "";
     private bool cargando = true;
 
     protected override async Task OnInitializedAsync()
     {
         await Buscar();
-        cargando = false;
     }
 
     private async Task Buscar()
     {
-        var todos = await Servicio.Listar();
-        var texto = busqueda.Trim();
+        cargando = true;
 
-        if (string.IsNullOrWhiteSpace(texto))
+        try
         {
-            libros = todos;
-            return;
+            var texto = busqueda.Trim();
+
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                libros = await Servicio.GetList(l => true);
+            }
+            else if (filtro == "Titulo")
+            {
+                libros = await Servicio.GetList(l =>
+                    l.Titulo.Contains(texto));
+            }
+            else if (filtro == "Autor")
+            {
+                libros = await Servicio.GetList(l =>
+                    l.Autor.Contains(texto));
+            }
+            else if (int.TryParse(texto, out int numero))
+            {
+                libros = filtro == "LibroId"
+                    ? await Servicio.GetList(l => l.LibroId == numero)
+                    : await Servicio.GetList(l => l.AnoPublicacion == numero);
+            }
+            else
+            {
+                libros = new();
+            }
         }
-
-        libros = filtro switch
+        finally
         {
-            "LibroId" => todos
-                .Where(l => l.LibroId.ToString() == texto)
-                .ToList(),
+            cargando = false;
+        }
+    }
 
-            "Autor" => todos
-                .Where(l => l.Autor.Contains(
-                    texto, StringComparison.OrdinalIgnoreCase))
-                .ToList(),
-
-            "AnoPublicacion" => todos
-                .Where(l => l.AnoPublicacion.ToString() == texto)
-                .ToList(),
-
-            _ => todos
-                .Where(l => l.Titulo.Contains(
-                    texto, StringComparison.OrdinalIgnoreCase))
-                .ToList()
-        };
+    private async Task Restablecer()
+    {
+        filtro = "Titulo";
+        busqueda = "";
+        await Buscar();
     }
 }
