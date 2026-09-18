@@ -8,17 +8,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Extensors\**" />
+    <Content Remove="Extensors\**" />
+    <EmbeddedResource Remove="Extensors\**" />
+    <None Remove="Extensors\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Aplicada1.Core" Version="1.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.12">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Extensors\" />
-    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

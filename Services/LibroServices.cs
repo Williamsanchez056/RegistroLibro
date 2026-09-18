@@ -1,9 +1,10 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
 using RegistroLibro.Models;
 using Aplicada1.Core;
 using System.Linq.Expressions;
+
 namespace RegistroLibro.Services;
 
 public class LibroService : IService<Libro, int>
@@ -70,8 +71,8 @@ public class LibroService : IService<Libro, int>
             return true;
         }
         catch (DbUpdateException ex) when (
-            ex.InnerException is SqliteException sqlite &&
-            sqlite.SqliteExtendedErrorCode == 2067)
+            ex.InnerException is SqlException sql &&
+            (sql.Number == 2601 || sql.Number == 2627))
         {
             return false;
         }
