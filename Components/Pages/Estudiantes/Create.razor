@@ -1,0 +1,117 @@
+﻿@page "/estudiantes/crear"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.Forms
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+
+@inject EstudianteService Servicio
+
+<PageTitle>Crear estudiante</PageTitle>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">Registro de estudiantes</h3>
+    </div>
+
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(mensaje))
+        {
+            <div class="alert @tipoAlerta" role="alert">
+                @mensaje
+            </div>
+        }
+
+        <EditForm Model="estudiante"
+                  OnValidSubmit="Guardar"
+                  FormName="CrearEstudiante"
+                  @key="estudiante">
+
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="nombres" class="form-label">
+                    Nombres
+                </label>
+                <InputText id="nombres"
+                           class="form-control"
+                           @bind-Value="estudiante.Nombres" />
+                <ValidationMessage For="@(() => estudiante.Nombres)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="direccion" class="form-label">
+                    Direccion
+                </label>
+                <InputText id="direccion"
+                           class="form-control"
+                           @bind-Value="estudiante.Direccion" />
+                <ValidationMessage For="@(() => estudiante.Direccion)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">
+                    Email
+                </label>
+                <InputText id="email"
+                           type="email"
+                           class="form-control"
+                           @bind-Value="estudiante.Email" />
+                <ValidationMessage For="@(() => estudiante.Email)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="fechaNacimiento" class="form-label">
+                    Fecha de nacimiento
+                </label>
+                <InputDate id="fechaNacimiento"
+                           class="form-control"
+                           @bind-Value="estudiante.FechaNacimiento" />
+                <ValidationMessage For="@(() => estudiante.FechaNacimiento)" />
+            </div>
+
+            <button type="submit"
+                    class="btn btn-success"
+                    disabled="@guardando">
+                @(guardando ? "Guardando..." : "Guardar")
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Estudiante estudiante = new();
+    private string mensaje = "";
+    private string tipoAlerta = "alert-danger";
+    private bool guardando;
+
+    private async Task Guardar()
+    {
+        if (guardando)
+            return;
+
+        guardando = true;
+        mensaje = "";
+
+        try
+        {
+            if (await Servicio.Guardar(estudiante))
+            {
+                tipoAlerta = "alert-success";
+                mensaje = "Estudiante registrado correctamente.";
+                estudiante = new();
+            }
+            else
+            {
+                tipoAlerta = "alert-danger";
+                mensaje = "Ya existe un estudiante con ese nombre.";
+            }
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+}
