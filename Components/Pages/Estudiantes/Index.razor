@@ -1,0 +1,128 @@
+﻿@page "/estudiantes"
+@rendermode InteractiveServer
+
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@inject EstudianteService Servicio
+
+<PageTitle>Consulta de estudiantes</PageTitle>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">Consulta de estudiantes</h3>
+    </div>
+
+    <div class="card-body">
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="busqueda" class="form-label">
+                    Buscar por nombre
+                </label>
+                <input id="busqueda"
+                       class="form-control"
+                       @bind="busqueda"
+                       placeholder="Escribe un nombre" />
+            </div>
+
+            <div class="col-md-6 d-flex align-items-end gap-2">
+                <button class="btn btn-primary"
+                        @onclick="Buscar"
+                        disabled="@cargando">
+                    Buscar
+                </button>
+
+                <button class="btn btn-secondary"
+                        @onclick="Restablecer"
+                        disabled="@cargando">
+                    Restablecer
+                </button>
+            </div>
+        </div>
+
+        <a class="btn btn-success mb-3" href="/estudiantes/crear">
+            Registrar estudiante
+        </a>
+
+        @if (cargando)
+        {
+            <p>Cargando estudiantes...</p>
+        }
+        else if (estudiantes.Count == 0)
+        {
+            <div class="alert alert-info">
+                No se encontraron estudiantes.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombres</th>
+                            <th>Direccion</th>
+                            <th>Email</th>
+                            <th>Fecha de nacimiento</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var estudiante in estudiantes)
+                        {
+                            <tr @key="estudiante.EstudianteId">
+                                <td>@estudiante.EstudianteId</td>
+                                <td>@estudiante.Nombres</td>
+                                <td>@estudiante.Direccion</td>
+                                <td>@estudiante.Email</td>
+                                <td>
+                                    @(estudiante.FechaNacimiento?.ToString("dd/MM/yyyy"))
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-muted">
+                Total: @estudiantes.Count estudiantes
+            </p>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Estudiante> estudiantes = new();
+    private string busqueda = "";
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Buscar();
+    }
+
+    private async Task Buscar()
+    {
+        cargando = true;
+
+        try
+        {
+            var texto = busqueda.Trim();
+
+            estudiantes = string.IsNullOrWhiteSpace(texto)
+                ? await Servicio.Listar()
+                : await Servicio.GetList(e => e.Nombres.Contains(texto));
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task Restablecer()
+    {
+        busqueda = "";
+        await Buscar();
+    }
+}

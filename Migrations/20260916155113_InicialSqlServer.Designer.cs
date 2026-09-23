@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RegistroLibro.Context;
 
@@ -11,9 +12,11 @@ using RegistroLibro.Context;
 namespace RegistroLibro.Migrations
 {
     [DbContext(typeof(RegistroContext))]
-    partial class RegistroContextModelSnapshot : ModelSnapshot
+    [Migration("20260916155113_InicialSqlServer")]
+    partial class InicialSqlServer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -82,48 +85,6 @@ namespace RegistroLibro.Migrations
                         .IsUnique();
 
                     b.ToTable("Libro", (string)null);
-                });
-
-            modelBuilder.Entity("RegistroLibro.Models.Prestamo", b =>
-                {
-                    b.Property<int>("PrestamoId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PrestamoId"));
-
-                    b.Property<string>("Estudiante")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("FechaDevolucion")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("FechaPrestamo")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("LibroId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Observaciones")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("PrestamoId");
-
-                    b.HasIndex("LibroId");
-
-                    b.ToTable("Prestamos", (string)null);
-                });
-
-            modelBuilder.Entity("RegistroLibro.Models.Prestamo", b =>
-                {
-                    b.HasOne("RegistroLibro.Models.Libro", "Libro")
-                        .WithMany()
-                        .HasForeignKey("LibroId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Libro");
                 });
 #pragma warning restore 612, 618
         }
