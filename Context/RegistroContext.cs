@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Models;
 
 namespace RegistroLibro.Context;
@@ -13,6 +13,8 @@ public class RegistroContext : DbContext
     public DbSet<Libro> Libros { get; set; }
 
     public DbSet<Estudiante> Estudiantes { get; set; }
+
+    public DbSet<Prestamo> Prestamos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,5 +46,7 @@ public class RegistroContext : DbContext
             .Property(e => e.FechaNacimiento)
             .HasColumnType("date")
             .IsRequired();
+
+        modelBuilder.Entity<Prestamo>().ToTable("Prestamos");
     }
 }
