@@ -1,0 +1,115 @@
+﻿@page "/prestamos"
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+@inject PrestamoService PrestamoService
+@rendermode InteractiveServer
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+            <h4 class="mb-0">
+                <i class="bi bi-journal-check me-2"></i>Consulta de Prestamos
+            </h4>
+            <a href="prestamos/crear" class="btn btn-light btn-sm text-primary fw-bold shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i>Nuevo Prestamo
+            </a>
+        </div>
+
+        <div class="card-body">
+            <div class="row mb-3 g-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text"
+                               class="form-control border-start-0 ps-0"
+                               placeholder="Filtrar por estudiante o libro..."
+                               @bind="terminoBusqueda"
+                               @bind:event="oninput" />
+                    </div>
+                </div>
+                <div class="col-md-7 text-md-end text-muted">
+                    Total: <strong>@(PrestamosFiltrados?.Count ?? 0)</strong>
+                </div>
+            </div>
+
+            @if (cargando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            }
+            else if (listaPrestamos == null || !listaPrestamos.Any())
+            {
+                <div class="alert alert-info text-center my-4">
+                    No hay registros de prestamos.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Estudiante</th>
+                                <th>Libro</th>
+                                <th>Fecha Prestamo</th>
+                                <th>Fecha Devolucion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in PrestamosFiltrados)
+                            {
+                                <tr>
+                                    <td><strong>@item.PrestamoId</strong></td>
+                                    <td>@item.Estudiante</td>
+                                    <td>@item.Libro</td>
+                                    <td>@item.FechaPrestamo.ToString("dd/MM/yyyy")</td>
+                                    <td>@item.FechaDevolucion.ToString("dd/MM/yyyy")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Prestamo> listaPrestamos = new();
+    private string terminoBusqueda = string.Empty;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        try
+        {
+            listaPrestamos = await PrestamoService.Listar();
+        }
+        catch (Exception)
+        {
+            listaPrestamos = new List<Prestamo>();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private List<Prestamo> PrestamosFiltrados =>
+        string.IsNullOrWhiteSpace(terminoBusqueda)
+            ? listaPrestamos
+            : listaPrestamos.Where(p =>
+                p.Estudiante.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
+                p.Libro.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+}
