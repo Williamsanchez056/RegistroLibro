@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
 using RegistroLibro.Models;
 using System.Linq.Expressions;
