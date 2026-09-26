@@ -7,12 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContextFactory<RegistroContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("ConStr")
-        ?? throw new InvalidOperationException(
-            "Falta configurar la conexion ConStr.")));
+        builder.Configuration.GetConnectionString("ConStr") 
+        ?? throw new InvalidOperationException("Falta configurar la conexion ConStr.")));
 
 builder.Services.AddScoped<LibroService>();
 builder.Services.AddScoped<EstudianteService>();
+builder.Services.AddScoped<PrestamoService>(); 
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
