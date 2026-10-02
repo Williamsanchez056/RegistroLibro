@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RegistroLibro.Models;
 
-[Table("Estudiantes")]
+[Table("Estudiante")]
 public class Estudiante
 {
     [Key]
