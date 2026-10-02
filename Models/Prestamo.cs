@@ -1,6 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace RegistroLibro.Models;
 
+[Table("Prestamos")]
 public class Prestamo
 {
     [Key]

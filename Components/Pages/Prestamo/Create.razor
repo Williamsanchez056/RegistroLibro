@@ -21,14 +21,14 @@
                 <!-- Nombre del Estudiante -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Nombre del Estudiante:</label>
-                    <InputText class="form-control" placeholder="Ej: Williams Rafael" @bind-Value="nuevoPrestamo.Estudiante" />
+                    <InputText class="form-control" placeholder="Ej: Williams Rafael" @bind-value="nuevoPrestamo.Estudiante" />
                     <ValidationMessage For="@(() => nuevoPrestamo.Estudiante)" />
                 </div>
 
                 <!-- Nombre del Libro (texto libre) -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Libro:</label>
-                    <InputText class="form-control" placeholder="Ej: 48 Leyes del Poder" @bind-Value="nuevoPrestamo.Libro" />
+                    <InputText class="form-control" placeholder="Ej: 48 Leyes del Poder" @bind-value="nuevoPrestamo.Libro" />
                     <ValidationMessage For="@(() => nuevoPrestamo.Libro)" />
                 </div>
 
@@ -36,13 +36,13 @@
                     <!-- Fecha de Prestamo -->
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Fecha de Prestamo:</label>
-                        <InputDate class="form-control" @bind-Value="nuevoPrestamo.FechaPrestamo" />
+                        <InputDate class="form-control" @bind-value="nuevoPrestamo.FechaPrestamo" />
                     </div>
 
                     <!-- Fecha de Devolucion -->
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Fecha de Devolucion:</label>
-                        <InputDate class="form-control" @bind-Value="nuevoPrestamo.FechaDevolucion" />
+                        <InputDate class="form-control" @bind-value="nuevoPrestamo.FechaDevolucion" />
                         <ValidationMessage For="@(() => nuevoPrestamo.FechaDevolucion)" />
                     </div>
                 </div>

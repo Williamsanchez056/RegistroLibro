@@ -6,6 +6,7 @@ using RegistroLibro.Models;
 using System.Linq.Expressions;
 
 namespace RegistroLibro.Services;
+
 public class EstudianteService : IService<Estudiante, int>
 {
     private readonly IDbContextFactory<RegistroContext> _factory;
@@ -16,42 +17,6 @@ public class EstudianteService : IService<Estudiante, int>
         _factory = factory;
     }
 
-    public async Task<List<Estudiante>> Listar()
-    {
-        return await GetList(e => true);
-    }
-
-    public async Task<List<Estudiante>> GetList(
-        Expression<Func<Estudiante, bool>> criterio)
-    {
-        using var contexto = await _factory.CreateDbContextAsync();
-
-        return await contexto.Estudiantes
-            .Where(criterio)
-            .AsNoTracking()
-            .OrderBy(e => e.Nombres)
-            .ToListAsync();
-    }
-
-    public async Task<Estudiante?> Buscar(int id)
-    {
-        using var contexto = await _factory.CreateDbContextAsync();
-
-        return await contexto.Estudiantes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.EstudianteId == id);
-    }
-    public async Task<bool> ExisteNombre(
-        string nombres, int estudianteId = 0)
-    {
-        using var contexto = await _factory.CreateDbContextAsync();
-
-        var nombre = nombres.Trim();
-
-        return await contexto.Estudiantes.AnyAsync(e =>
-            e.Nombres == nombre &&
-            e.EstudianteId != estudianteId);
-    }
     public async Task<bool> Guardar(Estudiante estudiante)
     {
         using var contexto = await _factory.CreateDbContextAsync();
@@ -88,7 +53,46 @@ public class EstudianteService : IService<Estudiante, int>
             return false;
         }
     }
-      public async Task<bool> Eliminar(int id)
+
+    public async Task<List<Estudiante>> Listar()
+    {
+        return await GetList(e => true);
+    }
+
+    public async Task<List<Estudiante>> GetList(
+        Expression<Func<Estudiante, bool>> criterio)
+    {
+        using var contexto = await _factory.CreateDbContextAsync();
+
+        return await contexto.Estudiantes
+            .Where(criterio)
+            .AsNoTracking()
+            .OrderBy(e => e.Nombres)
+            .ToListAsync();
+    }
+
+    public async Task<Estudiante?> Buscar(int id)
+    {
+        using var contexto = await _factory.CreateDbContextAsync();
+
+        return await contexto.Estudiantes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.EstudianteId == id);
+    }
+
+    public async Task<bool> ExisteNombre(
+        string nombres, int estudianteId = 0)
+    {
+        using var contexto = await _factory.CreateDbContextAsync();
+
+        var nombre = nombres.Trim();
+
+        return await contexto.Estudiantes.AnyAsync(e =>
+            e.Nombres == nombre &&
+            e.EstudianteId != estudianteId);
+    }
+
+    public async Task<bool> Eliminar(int id)
     {
         using var contexto = await _factory.CreateDbContextAsync();
 

@@ -1,9 +1,13 @@
 ﻿@page "/libros"
 @rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.QuickGrid
 @using RegistroLibro.Models
 @using RegistroLibro.Services
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
+
 @inject LibroService Servicio
+@inject NavigationManager navigationManager
 
 <PageTitle>Consulta de libros</PageTitle>
 
@@ -13,9 +17,12 @@
     </div>
 
     <div class="card-body">
+
         <div class="row g-3 mb-3">
+
             <div class="col-md-3">
                 <label class="form-label">Filtrar por</label>
+
                 <select class="form-select" @bind="filtro">
                     <option value="Titulo">Titulo</option>
                     <option value="Autor">Autor</option>
@@ -26,86 +33,119 @@
 
             <div class="col-md-5">
                 <label class="form-label">Buscar</label>
+
                 <input class="form-control"
                        @bind="busqueda"
                        placeholder="Escribe tu busqueda" />
             </div>
 
             <div class="col-md-4 d-flex align-items-end gap-2">
-                <button class="btn btn-primary" @onclick="Buscar">
+
+                <button class="btn btn-primary"
+                        @onclick="Buscar">
                     Buscar
                 </button>
 
-                <button class="btn btn-secondary" @onclick="Restablecer">
+                <button class="btn btn-secondary"
+                        @onclick="Restablecer">
                     Restablecer
                 </button>
+
             </div>
         </div>
 
-        <a class="btn btn-success mb-3" href="/libros/crear">
+        <button class="btn btn-success mb-3"
+                @onclick="Crear">
             Crear libro
-        </a>
+        </button>
 
         @if (cargando)
         {
             <p>Cargando libros...</p>
         }
-        else if (libros.Count == 0)
-        {
-            <div class="alert alert-info">
-                No se encontraron libros.
-            </div>
-        }
         else
         {
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Titulo</th>
-                            <th>Autor</th>
-                            <th>Año de publicacion</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var libro in libros)
-                        {
-                            <tr @key="libro.LibroId">
-                                <td>@libro.LibroId</td>
-                                <td>@libro.Titulo</td>
-                                <td>@libro.Autor</td>
-                                <td>@libro.AnoPublicacion</td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <a class="btn btn-warning btn-sm"
-                                           href="@($"/libros/editar/{libro.LibroId}")">
-                                            Editar
-                                        </a>
+            <QuickGrid Items="libros.AsQueryable()"
+                       Class="table table-bordered table-striped align-middle">
 
-                                        <a class="btn btn-danger btn-sm"
-                                           href="@($"/libros/eliminar/{libro.LibroId}")">
-                                            Eliminar
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                <PropertyColumn Property="l => l.LibroId"
+                                Title="ID"
+                                Sortable="true" />
 
-            <p class="text-muted">Total: @libros.Count libros</p>
+                <PropertyColumn Property="l => l.Titulo"
+                                Title="Titulo"
+                                Sortable="true" />
+
+                <PropertyColumn Property="l => l.Autor"
+                                Title="Autor"
+                                Sortable="true" />
+
+                <PropertyColumn Property="l => l.AnoPublicacion"
+                                Title="Año de publicacion"
+                                Sortable="true" />
+
+                <TemplateColumn Title="Acciones">
+                    <button class="btn btn-warning btn-sm"
+                            @onclick="() => Editar(context.LibroId)">
+                        Editar
+                    </button>
+
+                    <button class="btn btn-danger btn-sm ms-2"
+                            @onclick="() => MostrarModal(context.LibroId)">
+                        Eliminar
+                    </button>
+                </TemplateColumn>
+
+            </QuickGrid>
+
+            @if (libros.Count == 0)
+            {
+                <div class="alert alert-info mt-3">
+                    No se encontraron libros.
+                </div>
+            }
+
+            <p class="text-muted mt-3">
+                Total: @libros.Count libros
+            </p>
         }
+
     </div>
 </div>
 
+<Modal @ref="modal" Title="Confirmar Eliminación">
+
+    <BodyTemplate>
+        <p>¿Está seguro de que desea eliminar este libro?</p>
+    </BodyTemplate>
+
+    <FooterTemplate>
+
+        <Button Color="ButtonColor.Secondary"
+                @onclick="OcultarModal">
+            Cancelar
+        </Button>
+
+        <Button Color="ButtonColor.Danger"
+                @onclick="EliminarLibro">
+            Eliminar
+        </Button>
+
+    </FooterTemplate>
+
+</Modal>
+
 @code {
     private List<Libro> libros = new();
+
     private string filtro = "Titulo";
     private string busqueda = "";
+
     private bool cargando = true;
+
+    private Modal modal = default!;
+
+    private int libroIdEliminar;
 
     protected override async Task OnInitializedAsync()
     {
@@ -136,9 +176,16 @@
             }
             else if (int.TryParse(texto, out int numero))
             {
-                libros = filtro == "LibroId"
-                    ? await Servicio.GetList(l => l.LibroId == numero)
-                    : await Servicio.GetList(l => l.AnoPublicacion == numero);
+                if (filtro == "LibroId")
+                {
+                    libros = await Servicio.GetList(l =>
+                        l.LibroId == numero);
+                }
+                else
+                {
+                    libros = await Servicio.GetList(l =>
+                        l.AnoPublicacion == numero);
+                }
             }
             else
             {
@@ -155,6 +202,49 @@
     {
         filtro = "Titulo";
         busqueda = "";
+
         await Buscar();
+    }
+
+    private void Crear()
+    {
+        navigationManager.NavigateTo("/libros/crear");
+    }
+
+    private void Editar(int id)
+    {
+        navigationManager.NavigateTo($"/libros/editar/{id}");
+    }
+
+    private async Task MostrarModal(int id)
+    {
+        libroIdEliminar = id;
+
+        await modal.ShowAsync();
+    }
+
+    private async Task OcultarModal()
+    {
+        await modal.HideAsync();
+    }
+
+    private async Task EliminarLibro()
+    {
+        var eliminado = await Servicio.Eliminar(libroIdEliminar);
+
+        if (eliminado)
+        {
+            toastService.ShowSuccess(
+                "Libro eliminado correctamente.");
+
+            libros = await Servicio.GetList(l => true);
+        }
+        else
+        {
+            toastService.ShowError(
+                "No se pudo eliminar el libro.");
+        }
+
+        await modal.HideAsync();
     }
 }

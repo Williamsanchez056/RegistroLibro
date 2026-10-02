@@ -6,7 +6,9 @@
 @using RegistroLibro.Models
 @using RegistroLibro.Services
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
+
 @inject LibroService Servicio
+@inject NavigationManager navigationManager
 
 <PageTitle>Editar libro</PageTitle>
 
@@ -26,19 +28,13 @@
                 No se encontro el libro.
             </div>
 
-            <a class="btn btn-secondary" href="/libros">
+            <button class="btn btn-secondary"
+                    @onclick="Volver">
                 Volver
-            </a>
+            </button>
         }
         else
         {
-            @if (!string.IsNullOrEmpty(mensaje))
-            {
-                <div class="alert @tipoAlerta" role="alert">
-                    @mensaje
-                </div>
-            }
-
             <EditForm Model="libro"
                       OnValidSubmit="Guardar"
                       FormName="EditarLibro">
@@ -58,7 +54,7 @@
                     <label for="titulo" class="form-label">Titulo</label>
                     <InputText id="titulo"
                                class="form-control"
-                               @bind-Value="libro.Titulo" />
+                               @bind-value="libro.Titulo" />
                     <ValidationMessage For="@(() => libro.Titulo)" />
                 </div>
 
@@ -66,7 +62,7 @@
                     <label for="autor" class="form-label">Autor</label>
                     <InputText id="autor"
                                class="form-control"
-                               @bind-Value="libro.Autor" />
+                               @bind-value="libro.Autor" />
                     <ValidationMessage For="@(() => libro.Autor)" />
                 </div>
 
@@ -74,9 +70,11 @@
                     <label for="ano" class="form-label">
                         Año de publicacion
                     </label>
+
                     <InputNumber id="ano"
                                  class="form-control"
-                                 @bind-Value="libro.AnoPublicacion" />
+                                 @bind-value="libro.AnoPublicacion" />
+
                     <ValidationMessage For="@(() => libro.AnoPublicacion)" />
                 </div>
 
@@ -86,28 +84,53 @@
                     @(guardando ? "Guardando..." : "Guardar cambios")
                 </button>
 
-                <a class="btn btn-secondary" href="/libros">
+                <button type="button"
+                        class="btn btn-danger ms-2"
+                        @onclick="MostrarModal">
+                    Eliminar
+                </button>
+
+                <button type="button"
+                        class="btn btn-secondary ms-2"
+                        @onclick="Volver">
                     Volver
-                </a>
+                </button>
+
             </EditForm>
         }
     </div>
 </div>
+
+<Modal @ref="modal" Title="Confirmar Eliminación">
+    <BodyTemplate>
+        <p>¿Está seguro de que desea eliminar este libro?</p>
+    </BodyTemplate>
+
+    <FooterTemplate>
+        <Button Color="ButtonColor.Secondary"
+                @onclick="OcultarModal">
+            Cancelar
+        </Button>
+
+        <Button Color="ButtonColor.Danger"
+                @onclick="EliminarLibro">
+            Eliminar
+        </Button>
+    </FooterTemplate>
+</Modal>
 
 @code {
     [Parameter]
     public int LibroId { get; set; }
 
     private Libro? libro;
+    private Modal modal = default!;
     private bool cargando = true;
     private bool guardando;
-    private string mensaje = "";
-    private string tipoAlerta = "alert-danger";
 
     protected override async Task OnParametersSetAsync()
     {
         cargando = true;
-        mensaje = "";
 
         try
         {
@@ -125,24 +148,65 @@
             return;
 
         guardando = true;
-        mensaje = "";
 
         try
         {
             if (await Servicio.Guardar(libro))
             {
-                tipoAlerta = "alert-success";
-                mensaje = "Libro actualizado correctamente.";
+                toastService.ShowSuccess(
+                    "Libro actualizado correctamente.");
+
+                navigationManager.NavigateTo("/libros");
             }
             else
             {
-                tipoAlerta = "alert-danger";
-                mensaje = "Ya existe otro libro con ese titulo.";
+                toastService.ShowError(
+                    "Ya existe otro libro con ese titulo.");
             }
         }
         finally
         {
             guardando = false;
         }
+    }
+
+    private async Task MostrarModal()
+    {
+        await modal.ShowAsync();
+    }
+
+    private async Task OcultarModal()
+    {
+        await modal.HideAsync();
+    }
+
+    private async Task EliminarLibro()
+    {
+        if (libro is null)
+            return;
+
+        var eliminado = await Servicio.Eliminar(LibroId);
+
+        if (eliminado)
+        {
+            toastService.ShowSuccess(
+                "Libro eliminado correctamente.");
+
+            await modal.HideAsync();
+
+            navigationManager.NavigateTo("/libros");
+        }
+        else
+        {
+            toastService.ShowError(
+                "No se pudo eliminar el libro.");
+
+            await modal.HideAsync();
+        }
+    }
+
+    private void Volver()
+    {
+        navigationManager.NavigateTo("/libros");
     }
 }

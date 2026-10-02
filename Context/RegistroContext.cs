@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Models;
+
 namespace RegistroLibro.Context;
 
 public class RegistroContext : DbContext
@@ -13,9 +14,7 @@ public class RegistroContext : DbContext
 
     public DbSet<Estudiante> Estudiantes { get; set; }
 
-
     public DbSet<Prestamo> Prestamos { get; set; }
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,8 +47,6 @@ public class RegistroContext : DbContext
             .HasColumnType("date")
             .IsRequired();
 
-
         modelBuilder.Entity<Prestamo>().ToTable("Prestamos");
-
     }
 }

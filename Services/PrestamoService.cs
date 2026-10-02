@@ -14,6 +14,22 @@ public class PrestamoService
         _factory = factory;
     }
 
+    public async Task<bool> Guardar(Prestamo prestamo)
+    {
+        using var contexto = await _factory.CreateDbContextAsync();
+
+        if (prestamo.PrestamoId == 0)
+        {
+            contexto.Prestamos.Add(prestamo);
+        }
+        else
+        {
+            contexto.Prestamos.Update(prestamo);
+        }
+
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
     public async Task<List<Prestamo>> Listar()
     {
         return await GetList(p => true);
@@ -37,22 +53,6 @@ public class PrestamoService
         return await contexto.Prestamos
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.PrestamoId == id);
-    }
-
-    public async Task<bool> Guardar(Prestamo prestamo)
-    {
-        using var contexto = await _factory.CreateDbContextAsync();
-
-        if (prestamo.PrestamoId == 0)
-        {
-            contexto.Prestamos.Add(prestamo);
-        }
-        else
-        {
-            contexto.Prestamos.Update(prestamo);
-        }
-
-        return await contexto.SaveChangesAsync() > 0;
     }
 
     public async Task<bool> Eliminar(int id)

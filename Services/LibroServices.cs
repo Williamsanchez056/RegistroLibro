@@ -16,32 +16,6 @@ public class LibroService : IService<Libro, int>
         _factory = factory;
     }
 
-    public async Task<List<Libro>> Listar()
-    {
-        return await GetList(l => true);
-    }
-
-    public async Task<List<Libro>> GetList(
-        Expression<Func<Libro, bool>> criterio)
-    {
-        using var contexto = await _factory.CreateDbContextAsync();
-
-        return await contexto.Libros
-            .Where(criterio)
-            .AsNoTracking()
-            .OrderBy(l => l.Titulo)
-            .ToListAsync();
-    }
-
-    public async Task<Libro?> Buscar(int id)
-    {
-        using var contexto = await _factory.CreateDbContextAsync();
-
-        return await contexto.Libros
-            .AsNoTracking()
-            .FirstOrDefaultAsync(l => l.LibroId == id);
-    }
-
     public async Task<bool> Guardar(Libro libro)
     {
         using var contexto = await _factory.CreateDbContextAsync();
@@ -76,6 +50,32 @@ public class LibroService : IService<Libro, int>
         {
             return false;
         }
+    }
+
+    public async Task<List<Libro>> Listar()
+    {
+        return await GetList(l => true);
+    }
+
+    public async Task<List<Libro>> GetList(
+        Expression<Func<Libro, bool>> criterio)
+    {
+        using var contexto = await _factory.CreateDbContextAsync();
+
+        return await contexto.Libros
+            .Where(criterio)
+            .AsNoTracking()
+            .OrderBy(l => l.Titulo)
+            .ToListAsync();
+    }
+
+    public async Task<Libro?> Buscar(int id)
+    {
+        using var contexto = await _factory.CreateDbContextAsync();
+
+        return await contexto.Libros
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.LibroId == id);
     }
 
     public async Task<bool> Eliminar(int id)

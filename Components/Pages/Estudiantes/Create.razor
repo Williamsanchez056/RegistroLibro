@@ -36,7 +36,7 @@
                 </label>
                 <InputText id="nombres"
                            class="form-control"
-                           @bind-Value="estudiante.Nombres" />
+                           @bind-value="estudiante.Nombres" />
                 <ValidationMessage For="@(() => estudiante.Nombres)" />
             </div>
 
@@ -46,7 +46,7 @@
                 </label>
                 <InputText id="direccion"
                            class="form-control"
-                           @bind-Value="estudiante.Direccion" />
+                           @bind-value="estudiante.Direccion" />
                 <ValidationMessage For="@(() => estudiante.Direccion)" />
             </div>
 
@@ -57,7 +57,7 @@
                 <InputText id="email"
                            type="email"
                            class="form-control"
-                           @bind-Value="estudiante.Email" />
+                           @bind-value="estudiante.Email" />
                 <ValidationMessage For="@(() => estudiante.Email)" />
             </div>
 
@@ -67,7 +67,7 @@
                 </label>
                 <InputDate id="fechaNacimiento"
                            class="form-control"
-                           @bind-Value="estudiante.FechaNacimiento" />
+                           @bind-value="estudiante.FechaNacimiento" />
                 <ValidationMessage For="@(() => estudiante.FechaNacimiento)" />
             </div>
 
