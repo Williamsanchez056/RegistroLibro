@@ -12,9 +12,9 @@ builder.Services.AddDbContextFactory<RegistroContext>(options =>
             "Falta configurar la conexion ConStr.")));
 
 
-builder.Services.AddScoped<LibroService>();
-builder.Services.AddScoped<EstudianteService>();
-builder.Services.AddScoped<PrestamoService>();
+builder.Services.AddScoped<LibrosService>();
+builder.Services.AddScoped<EstudiantesService>();
+builder.Services.AddScoped<PrestamosService>();
 builder.Services.AddScoped<ToastService>(); 
 
 builder.Services.AddRazorComponents()

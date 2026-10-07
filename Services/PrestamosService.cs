@@ -4,10 +4,10 @@ using RegistroLibro.Context;
 using RegistroLibro.Models;
 using System.Linq.Expressions;
 namespace RegistroLibro.Services;
-public class PrestamoService : IService<Prestamo, int>
+public class PrestamosService : IService<Prestamo, int>
 {
     private readonly IDbContextFactory<RegistroContext> _factory;
-    public PrestamoService(IDbContextFactory<RegistroContext> factory)
+    public PrestamosService(IDbContextFactory<RegistroContext> factory)
     {
         _factory = factory;
     }

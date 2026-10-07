@@ -6,10 +6,10 @@ using RegistroLibro.Models;
 using System.Linq.Expressions;
 namespace RegistroLibro.Services;
 
-public class EstudianteService : IService<Estudiante, int>
+public class EstudiantesService : IService<Estudiante, int>
 {
     private readonly IDbContextFactory<RegistroContext> _factory;
-    public EstudianteService(IDbContextFactory<RegistroContext> factory)
+    public EstudiantesService(IDbContextFactory<RegistroContext> factory)
     {
         _factory = factory;
     }

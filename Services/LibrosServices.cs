@@ -6,10 +6,10 @@ using RegistroLibro.Models;
 using System.Linq.Expressions;
 namespace RegistroLibro.Services;
 
-public class LibroService : IService<Libro, int>
+public class LibrosService : IService<Libro, int>
 {
     private readonly IDbContextFactory<RegistroContext> _factory;
-    public LibroService(IDbContextFactory<RegistroContext> factory)
+    public LibrosService(IDbContextFactory<RegistroContext> factory)
     {
         _factory = factory;
     }
@@ -69,3 +69,4 @@ public class LibroService : IService<Libro, int>
         return await contexto.SaveChangesAsync() > 0;
     }
 }
+

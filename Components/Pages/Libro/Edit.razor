@@ -1,7 +1,8 @@
-﻿@page "/Libro/editar/{Id:int}"
+﻿```razor
+@page "/Libro/editar/{Id:int}"
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@inject LibroService Servicio
+@inject LibrosService Servicio
 @inject NavigationManager navigationManager
 @inject ToastService toastService
 @rendermode InteractiveServer
@@ -75,3 +76,4 @@
         navigationManager.NavigateTo("/Libro");
     }
 }
+```
