@@ -1,21 +1,15 @@
+
 @namespace RegistroLibro.Components
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
-
-<button class="btn @GetButtonClass()" @onclick="OnClick">
-    @ChildContent
-</button>
-
+<button class="btn @GetButtonClass()" @onclick="OnClick">@ChildContent</button>
 @code {
     [Parameter]
     public ButtonColor Color { get; set; } = ButtonColor.Primary;
-
     [Parameter]
     public EventCallback<MouseEventArgs> OnClick { get; set; }
-
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
-
     private string GetButtonClass()
     {
         return Color switch

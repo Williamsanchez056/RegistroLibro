@@ -1,7 +1,7 @@
 ﻿@page "/prestamos"
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@inject PrestamoService PrestamoService
+@inject RegistroLibro.Services.PrestamoService PrestamoService
 @rendermode InteractiveServer
 
 <div class="container mt-4">
@@ -65,7 +65,7 @@
                                 <tr>
                                     <td><strong>@item.PrestamoId</strong></td>
                                     <td>@item.Estudiante</td>
-                                    <td>@item.Libro</td>
+                                    <td>@item.Libro?.Titulo</td>
                                     <td>@item.FechaPrestamo.ToString("dd/MM/yyyy")</td>
                                     <td>@item.FechaDevolucion.ToString("dd/MM/yyyy")</td>
                                 </tr>
@@ -108,8 +108,8 @@
     private List<Prestamo> PrestamosFiltrados =>
         string.IsNullOrWhiteSpace(terminoBusqueda)
             ? listaPrestamos
-            : listaPrestamos.Where(p =>
+                : listaPrestamos.Where(p =>
                 p.Estudiante.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
-                p.Libro.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+                (p.Libro != null && p.Libro.Titulo.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
             ).ToList();
 }

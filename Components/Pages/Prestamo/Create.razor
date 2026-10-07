@@ -1,7 +1,8 @@
 ﻿@page "/prestamos/crear"
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@inject PrestamoService PrestamoService
+@inject RegistroLibro.Services.PrestamoService PrestamoService
+@inject RegistroLibro.Services.LibroService LibroService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
@@ -25,11 +26,17 @@
                     <ValidationMessage For="@(() => nuevoPrestamo.Estudiante)" />
                 </div>
 
-                <!-- Nombre del Libro (texto libre) -->
+                <!-- Seleccionar Libro -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Libro:</label>
-                    <InputText class="form-control" placeholder="Ej: 48 Leyes del Poder" @bind-value="nuevoPrestamo.Libro" />
-                    <ValidationMessage For="@(() => nuevoPrestamo.Libro)" />
+                    <InputSelect class="form-select" @bind-Value="nuevoPrestamo.LibroId">
+                        <option value="">-- Seleccione --</option>
+                        @foreach (var libro in libros)
+                        {
+                            <option value="@libro.LibroId">@libro.Titulo</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => nuevoPrestamo.LibroId)" />
                 </div>
 
                 <div class="row">
@@ -63,6 +70,12 @@
 
 @code {
     private Prestamo nuevoPrestamo = new();
+    private List<Libro> libros = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        libros = await LibroService.Listar();
+    }
 
     private async Task GuardarPrestamo()
     {

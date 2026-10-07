@@ -1,8 +1,6 @@
 @namespace RegistroLibro.Components
 @using Microsoft.AspNetCore.Components
-
 @inherits ComponentBase
-
 <div class="modal" style="display:@(Visible ? "block" : "none")">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -33,25 +31,19 @@
 @code {
     [Parameter]
     public string? Title { get; set; }
-
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
-
     [Parameter]
     public RenderFragment? BodyTemplate { get; set; }
-
     [Parameter]
     public RenderFragment? FooterTemplate { get; set; }
-
     public bool Visible { get; set; }
-
     public Task ShowAsync()
     {
         Visible = true;
         StateHasChanged();
         return Task.CompletedTask;
     }
-
     public Task HideAsync()
     {
         Visible = false;

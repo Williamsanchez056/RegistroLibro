@@ -1,250 +1,71 @@
-﻿@page "/libros"
-@rendermode InteractiveServer
-
+﻿@page "/Libro"
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@using static Microsoft.AspNetCore.Components.Web.RenderMode
-
 @inject LibroService Servicio
 @inject NavigationManager navigationManager
-
-<PageTitle>Consulta de libros</PageTitle>
-
-<div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h3 class="mb-0">Consulta de libros</h3>
-    </div>
-
-    <div class="card-body">
-
-        <div class="row g-3 mb-3">
-
-            <div class="col-md-3">
-                <label class="form-label">Filtrar por</label>
-
-                <select class="form-select" @bind="filtro">
-                    <option value="Titulo">Titulo</option>
-                    <option value="Autor">Autor</option>
-                    <option value="LibroId">ID</option>
-                    <option value="AnoPublicacion">Año de publicacion</option>
-                </select>
-            </div>
-
-            <div class="col-md-5">
-                <label class="form-label">Buscar</label>
-
-                <input class="form-control"
-                       @bind="busqueda"
-                       placeholder="Escribe tu busqueda" />
-            </div>
-
-            <div class="col-md-4 d-flex align-items-end gap-2">
-
-                <button class="btn btn-primary"
-                        @onclick="Buscar">
-                    Buscar
-                </button>
-
-                <button class="btn btn-secondary"
-                        @onclick="Restablecer">
-                    Restablecer
-                </button>
-
-            </div>
+@inject ToastService toastService
+@rendermode InteractiveServer
+<PageTitle>Libros</PageTitle>
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Registro de Libros</h5>
+            <button class="btn btn-primary" @onclick="Crear">Crear</button>
         </div>
-
-        <button class="btn btn-success mb-3"
-                @onclick="Crear">
-            Crear libro
-        </button>
-
-        @if (cargando)
-        {
-            <p>Cargando libros...</p>
-        }
-        else
-        {
-            <QuickGrid Items="libros.AsQueryable()"
-                       Class="table table-bordered table-striped align-middle">
-
-                <PropertyColumn Property="l => l.LibroId"
-                                Title="ID"
-                                Sortable="true" />
-
-                <PropertyColumn Property="l => l.Titulo"
-                                Title="Titulo"
-                                Sortable="true" />
-
-                <PropertyColumn Property="l => l.Autor"
-                                Title="Autor"
-                                Sortable="true" />
-
-                <PropertyColumn Property="l => l.AnoPublicacion"
-                                Title="Año de publicacion"
-                                Sortable="true" />
-
+        <div class="card-body">
+            <div class="mb-3">
+                <input class="form-control" placeholder="Buscar por titulo o autor..." @bind="filtro" @bind:event="oninput" />
+            </div>
+            <QuickGrid Items="LibrosFiltrados">
+                <PropertyColumn Property="@(l => l.LibroId)" Title="Id" />
+                <PropertyColumn Property="@(l => l.Titulo)" Title="Titulo" />
+                <PropertyColumn Property="@(l => l.Autor)" Title="Autor" />
+                <PropertyColumn Property="@(l => l.AnoPublicacion)" Title="Año" />
                 <TemplateColumn Title="Acciones">
-                    <button class="btn btn-warning btn-sm"
-                            @onclick="() => Editar(context.LibroId)">
-                        Editar
-                    </button>
-
-                    <button class="btn btn-danger btn-sm ms-2"
-                            @onclick="() => MostrarModal(context.LibroId)">
-                        Eliminar
-                    </button>
+                    <button class="btn btn-sm btn-warning me-1" @onclick="() => Editar(context.LibroId)">Editar</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(context.LibroId)">Eliminar</button>
                 </TemplateColumn>
-
             </QuickGrid>
-
-            @if (libros.Count == 0)
-            {
-                <div class="alert alert-info mt-3">
-                    No se encontraron libros.
-                </div>
-            }
-
-            <p class="text-muted mt-3">
-                Total: @libros.Count libros
-            </p>
-        }
-
+        </div>
     </div>
 </div>
-
-<Modal @ref="modal" Title="Confirmar Eliminación">
-
-    <BodyTemplate>
-        <p>¿Está seguro de que desea eliminar este libro?</p>
-    </BodyTemplate>
-
-    <FooterTemplate>
-
-        <Button Color="ButtonColor.Secondary"
-                @onclick="OcultarModal">
-            Cancelar
-        </Button>
-
-        <Button Color="ButtonColor.Danger"
-                @onclick="EliminarLibro">
-            Eliminar
-        </Button>
-
-    </FooterTemplate>
-
-</Modal>
-
 @code {
     private List<Libro> libros = new();
-
-    private string filtro = "Titulo";
-    private string busqueda = "";
-
-    private bool cargando = true;
-
-    private Modal modal = default!;
-
-    private int libroIdEliminar;
-
+    private string filtro = string.Empty;
+    private IQueryable<Libro> LibrosFiltrados =>
+        libros.Where(l =>
+            string.IsNullOrWhiteSpace(filtro) ||
+            l.Titulo.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+            l.Autor.Contains(filtro, StringComparison.OrdinalIgnoreCase))
+        .AsQueryable();
     protected override async Task OnInitializedAsync()
     {
-        await Buscar();
+        await Cargar();
     }
-
-    private async Task Buscar()
+    private async Task Cargar()
     {
-        cargando = true;
-
-        try
-        {
-            var texto = busqueda.Trim();
-
-            if (string.IsNullOrWhiteSpace(texto))
-            {
-                libros = await Servicio.GetList(l => true);
-            }
-            else if (filtro == "Titulo")
-            {
-                libros = await Servicio.GetList(l =>
-                    l.Titulo.Contains(texto));
-            }
-            else if (filtro == "Autor")
-            {
-                libros = await Servicio.GetList(l =>
-                    l.Autor.Contains(texto));
-            }
-            else if (int.TryParse(texto, out int numero))
-            {
-                if (filtro == "LibroId")
-                {
-                    libros = await Servicio.GetList(l =>
-                        l.LibroId == numero);
-                }
-                else
-                {
-                    libros = await Servicio.GetList(l =>
-                        l.AnoPublicacion == numero);
-                }
-            }
-            else
-            {
-                libros = new();
-            }
-        }
-        finally
-        {
-            cargando = false;
-        }
+        libros = await Servicio.Listar();
     }
-
-    private async Task Restablecer()
-    {
-        filtro = "Titulo";
-        busqueda = "";
-
-        await Buscar();
-    }
-
     private void Crear()
     {
-        navigationManager.NavigateTo("/libros/crear");
+        navigationManager.NavigateTo("/Libro/crear");
     }
-
     private void Editar(int id)
     {
-        navigationManager.NavigateTo($"/libros/editar/{id}");
+        navigationManager.NavigateTo($"/Libro/editar/{id}");
     }
-
-    private async Task MostrarModal(int id)
+    private async Task Eliminar(int id)
     {
-        libroIdEliminar = id;
-
-        await modal.ShowAsync();
-    }
-
-    private async Task OcultarModal()
-    {
-        await modal.HideAsync();
-    }
-
-    private async Task EliminarLibro()
-    {
-        var eliminado = await Servicio.Eliminar(libroIdEliminar);
-
-        if (eliminado)
+        var resultado = await Servicio.Eliminar(id);
+        if (resultado)
         {
-            toastService.ShowSuccess(
-                "Libro eliminado correctamente.");
-
-            libros = await Servicio.GetList(l => true);
+            toastService.ShowSuccess("Libro eliminado correctamente.");
+            await Cargar();
         }
         else
         {
-            toastService.ShowError(
-                "No se pudo eliminar el libro.");
+            toastService.ShowError("No se pudo eliminar el libro.");
         }
-
-        await modal.HideAsync();
     }
 }

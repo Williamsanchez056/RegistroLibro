@@ -1,212 +1,77 @@
-﻿@page "/libros/editar/{LibroId:int}"
-@rendermode InteractiveServer
-
-@using Microsoft.AspNetCore.Components
-@using Microsoft.AspNetCore.Components.Forms
+﻿@page "/Libro/editar/{Id:int}"
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@using static Microsoft.AspNetCore.Components.Web.RenderMode
-
 @inject LibroService Servicio
 @inject NavigationManager navigationManager
-
-<PageTitle>Editar libro</PageTitle>
-
-<div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h3 class="mb-0">Editar libro</h3>
-    </div>
-
-    <div class="card-body">
-        @if (cargando)
-        {
-            <p>Cargando libro...</p>
-        }
-        else if (libro is null)
-        {
-            <div class="alert alert-warning">
-                No se encontro el libro.
-            </div>
-
-            <button class="btn btn-secondary"
-                    @onclick="Volver">
-                Volver
-            </button>
-        }
-        else
-        {
-            <EditForm Model="libro"
-                      OnValidSubmit="Guardar"
-                      FormName="EditarLibro">
-
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-
-                <div class="mb-3">
-                    <label for="libroId" class="form-label">ID</label>
-                    <input id="libroId"
-                           class="form-control"
-                           value="@libro.LibroId"
-                           readonly />
-                </div>
-
-                <div class="mb-3">
-                    <label for="titulo" class="form-label">Titulo</label>
-                    <InputText id="titulo"
-                               class="form-control"
-                               @bind-value="libro.Titulo" />
-                    <ValidationMessage For="@(() => libro.Titulo)" />
-                </div>
-
-                <div class="mb-3">
-                    <label for="autor" class="form-label">Autor</label>
-                    <InputText id="autor"
-                               class="form-control"
-                               @bind-value="libro.Autor" />
-                    <ValidationMessage For="@(() => libro.Autor)" />
-                </div>
-
-                <div class="mb-3">
-                    <label for="ano" class="form-label">
-                        Año de publicacion
-                    </label>
-
-                    <InputNumber id="ano"
-                                 class="form-control"
-                                 @bind-value="libro.AnoPublicacion" />
-
-                    <ValidationMessage For="@(() => libro.AnoPublicacion)" />
-                </div>
-
-                <button type="submit"
-                        class="btn btn-success"
-                        disabled="@guardando">
-                    @(guardando ? "Guardando..." : "Guardar cambios")
-                </button>
-
-                <button type="button"
-                        class="btn btn-danger ms-2"
-                        @onclick="MostrarModal">
-                    Eliminar
-                </button>
-
-                <button type="button"
-                        class="btn btn-secondary ms-2"
-                        @onclick="Volver">
-                    Volver
-                </button>
-
-            </EditForm>
-        }
-    </div>
-</div>
-
-<Modal @ref="modal" Title="Confirmar Eliminación">
-    <BodyTemplate>
-        <p>¿Está seguro de que desea eliminar este libro?</p>
-    </BodyTemplate>
-
-    <FooterTemplate>
-        <Button Color="ButtonColor.Secondary"
-                @onclick="OcultarModal">
-            Cancelar
-        </Button>
-
-        <Button Color="ButtonColor.Danger"
-                @onclick="EliminarLibro">
-            Eliminar
-        </Button>
-    </FooterTemplate>
-</Modal>
-
-@code {
-    [Parameter]
-    public int LibroId { get; set; }
-
-    private Libro? libro;
-    private Modal modal = default!;
-    private bool cargando = true;
-    private bool guardando;
-
-    protected override async Task OnParametersSetAsync()
-    {
-        cargando = true;
-
-        try
-        {
-            libro = await Servicio.Buscar(LibroId);
-        }
-        finally
-        {
-            cargando = false;
-        }
-    }
-
-    private async Task Guardar()
-    {
-        if (libro is null || guardando)
-            return;
-
-        guardando = true;
-
-        try
-        {
-            if (await Servicio.Guardar(libro))
+@inject ToastService toastService
+@rendermode InteractiveServer
+<PageTitle>Editar Libro</PageTitle>
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h5>Editar Libro</h5>
+        </div>
+        <div class="card-body">
+            @if (libro is null)
             {
-                toastService.ShowSuccess(
-                    "Libro actualizado correctamente.");
-
-                navigationManager.NavigateTo("/libros");
+                <p>Cargando...</p>
             }
             else
             {
-                toastService.ShowError(
-                    "Ya existe otro libro con ese titulo.");
+                <EditForm Model="libro" OnValidSubmit="Guardar">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                    <div class="mb-3">
+                        <label class="form-label">Titulo</label>
+                        <InputText class="form-control" @bind-Value="libro.Titulo" />
+                        <ValidationMessage For="@(() => libro.Titulo)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Autor</label>
+                        <InputText class="form-control" @bind-Value="libro.Autor" />
+                        <ValidationMessage For="@(() => libro.Autor)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Año de Publicacion</label>
+                        <InputNumber class="form-control" @bind-Value="libro.AnoPublicacion" />
+                        <ValidationMessage For="@(() => libro.AnoPublicacion)" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    <button type="button" class="btn btn-secondary ms-2" @onclick="Volver">Cancelar</button>
+                </EditForm>
             }
-        }
-        finally
+        </div>
+    </div>
+</div>
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private Libro? libro;
+    protected override async Task OnInitializedAsync()
+    {
+        libro = await Servicio.Buscar(Id);
+        if (libro is null)
         {
-            guardando = false;
+            navigationManager.NavigateTo("/Libro");
         }
     }
-
-    private async Task MostrarModal()
-    {
-        await modal.ShowAsync();
-    }
-
-    private async Task OcultarModal()
-    {
-        await modal.HideAsync();
-    }
-
-    private async Task EliminarLibro()
+    private async Task Guardar()
     {
         if (libro is null)
             return;
-
-        var eliminado = await Servicio.Eliminar(LibroId);
-
-        if (eliminado)
+        var resultado = await Servicio.Guardar(libro);
+        if (resultado)
         {
-            toastService.ShowSuccess(
-                "Libro eliminado correctamente.");
-
-            await modal.HideAsync();
-
-            navigationManager.NavigateTo("/libros");
+            toastService.ShowSuccess("Libro actualizado correctamente.");
+            navigationManager.NavigateTo("/Libro");
         }
         else
         {
-            toastService.ShowError(
-                "No se pudo eliminar el libro.");
-
-            await modal.HideAsync();
+            toastService.ShowError("Ya existe un libro con ese titulo.");
         }
     }
-
     private void Volver()
     {
-        navigationManager.NavigateTo("/libros");
+        navigationManager.NavigateTo("/Libro");
     }
 }

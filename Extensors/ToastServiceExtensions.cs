@@ -1,7 +1,5 @@
 ﻿using RegistroLibro.Services;
-
 namespace RegistroLibro.Extensors;
-
 public static class ToastServiceExtensions
 {
     public static void ShowSuccess(this ToastService toastService, string mensaje)
@@ -12,7 +10,6 @@ public static class ToastServiceExtensions
             Message = mensaje
         });
     }
-
     public static void ShowError(this ToastService toastService, string mensaje)
     {
         toastService.Notify(new ToastMessage

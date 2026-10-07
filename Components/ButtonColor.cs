@@ -1,5 +1,4 @@
 namespace RegistroLibro.Components;
-
 public enum ButtonColor
 {
     Primary,
