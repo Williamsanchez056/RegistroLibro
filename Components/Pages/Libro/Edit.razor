@@ -1,17 +1,19 @@
-﻿```razor
-@page "/Libro/editar/{Id:int}"
+﻿@page "/Libro/editar/{Id:int}"
 @using RegistroLibro.Models
 @using RegistroLibro.Services
 @inject LibrosService Servicio
 @inject NavigationManager navigationManager
 @inject ToastService toastService
 @rendermode InteractiveServer
+
 <PageTitle>Editar Libro</PageTitle>
+
 <div class="container mt-4">
     <div class="card">
         <div class="card-header">
             <h5>Editar Libro</h5>
         </div>
+
         <div class="card-body">
             @if (libro is null)
             {
@@ -22,45 +24,114 @@
                 <EditForm Model="libro" OnValidSubmit="Guardar">
                     <DataAnnotationsValidator />
                     <ValidationSummary />
+
                     <div class="mb-3">
                         <label class="form-label">Titulo</label>
                         <InputText class="form-control" @bind-Value="libro.Titulo" />
                         <ValidationMessage For="@(() => libro.Titulo)" />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Autor</label>
                         <InputText class="form-control" @bind-Value="libro.Autor" />
                         <ValidationMessage For="@(() => libro.Autor)" />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Año de Publicacion</label>
                         <InputNumber class="form-control" @bind-Value="libro.AnoPublicacion" />
                         <ValidationMessage For="@(() => libro.AnoPublicacion)" />
                     </div>
-                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                    <button type="button" class="btn btn-secondary ms-2" @onclick="Volver">Cancelar</button>
+
+                    <button type="submit" class="btn btn-primary">
+                        Guardar Cambios
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-danger ms-2"
+                            @onclick="MostrarModal">
+                        Eliminar
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-secondary ms-2"
+                            @onclick="Volver">
+                        Cancelar
+                    </button>
                 </EditForm>
             }
         </div>
     </div>
 </div>
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar eliminación</h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            @onclick="CerrarModal">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        ¿Estas seguro de que deseas eliminar este libro?
+                    </p>
+
+                    <p>
+                        <strong>@libro?.Titulo</strong>
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="btn btn-secondary"
+                            @onclick="CerrarModal">
+                        Cancelar
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-danger"
+                            @onclick="Eliminar">
+                        Si, eliminar
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter]
     public int Id { get; set; }
+
     private Libro? libro;
+    private bool mostrarModal;
+
     protected override async Task OnInitializedAsync()
     {
         libro = await Servicio.Buscar(Id);
+
         if (libro is null)
         {
             navigationManager.NavigateTo("/Libro");
         }
     }
+
     private async Task Guardar()
     {
         if (libro is null)
             return;
+
         var resultado = await Servicio.Guardar(libro);
+
         if (resultado)
         {
             toastService.ShowSuccess("Libro actualizado correctamente.");
@@ -71,9 +142,35 @@
             toastService.ShowError("Ya existe un libro con ese titulo.");
         }
     }
+
+    private void MostrarModal()
+    {
+        mostrarModal = true;
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+    private async Task Eliminar()
+    {
+        var resultado = await Servicio.Eliminar(Id);
+
+        if (resultado)
+        {
+            toastService.ShowSuccess("Libro eliminado correctamente.");
+            navigationManager.NavigateTo("/Libro");
+        }
+        else
+        {
+            toastService.ShowError("No se pudo eliminar el libro.");
+            mostrarModal = false;
+        }
+    }
+
     private void Volver()
     {
         navigationManager.NavigateTo("/Libro");
     }
 }
-```

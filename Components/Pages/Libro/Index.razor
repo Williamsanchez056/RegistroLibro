@@ -1,63 +1,109 @@
 ﻿@page "/Libro"
+
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using RegistroLibro.Models
 @using RegistroLibro.Services
+
 @inject LibrosService Servicio
 @inject NavigationManager navigationManager
 @inject ToastService toastService
+
 @rendermode InteractiveServer
+
 <PageTitle>Libros</PageTitle>
+
 <div class="container mt-4">
     <div class="card">
+
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5>Registro de Libros</h5>
-            <button class="btn btn-primary" @onclick="Crear">Crear</button>
+
+            <button class="btn btn-primary" @onclick="Crear">
+                Crear
+            </button>
         </div>
+
         <div class="card-body">
+
             <div class="mb-3">
-                <input class="form-control" placeholder="Buscar por titulo o autor..." @bind="filtro" @bind:event="oninput" />
+                <input class="form-control"
+                       placeholder="Buscar por titulo o autor..."
+                       @bind="filtro"
+                       @bind:event="oninput" />
             </div>
+
             <QuickGrid Items="LibrosFiltrados">
-                <PropertyColumn Property="@(l => l.LibroId)" Title="Id" />
-                <PropertyColumn Property="@(l => l.Titulo)" Title="Titulo" />
-                <PropertyColumn Property="@(l => l.Autor)" Title="Autor" />
-                <PropertyColumn Property="@(l => l.AnoPublicacion)" Title="Año" />
+
+                <PropertyColumn Property="@(l => l.LibroId)"
+                                Title="Id" />
+
+                <PropertyColumn Property="@(l => l.Titulo)"
+                                Title="Titulo" />
+
+                <PropertyColumn Property="@(l => l.Autor)"
+                                Title="Autor" />
+
+                <PropertyColumn Property="@(l => l.AnoPublicacion)"
+                                Title="Año" />
+
                 <TemplateColumn Title="Acciones">
-                    <button class="btn btn-sm btn-warning me-1" @onclick="() => Editar(context.LibroId)">Editar</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(context.LibroId)">Eliminar</button>
+
+                    <button class="btn btn-sm btn-warning me-1"
+                            @onclick="() => Editar(context.LibroId)">
+                        Editar
+                    </button>
+
+                    <button class="btn btn-sm btn-danger"
+                            @onclick="() => Eliminar(context.LibroId)">
+                        Eliminar
+                    </button>
+
                 </TemplateColumn>
+
             </QuickGrid>
+
         </div>
     </div>
 </div>
+
 @code {
+
     private List<Libro> libros = new();
+
     private string filtro = string.Empty;
+
     private IQueryable<Libro> LibrosFiltrados =>
-        libros.Where(l =>
-            string.IsNullOrWhiteSpace(filtro) ||
-            l.Titulo.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
-            l.Autor.Contains(filtro, StringComparison.OrdinalIgnoreCase))
-        .AsQueryable();
+        libros
+            .Where(l =>
+                string.IsNullOrWhiteSpace(filtro) ||
+                l.Titulo.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                l.Autor.Contains(filtro, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+
     protected override async Task OnInitializedAsync()
     {
         await Cargar();
     }
+
     private async Task Cargar()
     {
         libros = await Servicio.Listar();
     }
+
     private void Crear()
     {
         navigationManager.NavigateTo("/Libro/crear");
     }
+
     private void Editar(int id)
     {
         navigationManager.NavigateTo($"/Libro/editar/{id}");
     }
+
     private async Task Eliminar(int id)
     {
         var resultado = await Servicio.Eliminar(id);
+
         if (resultado)
         {
             toastService.ShowSuccess("Libro eliminado correctamente.");
