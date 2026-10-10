@@ -1,0 +1,53 @@
+@namespace RegistroLibro.Components
+@using Microsoft.AspNetCore.Components
+@inherits ComponentBase
+<div class="modal" style="display:@(Visible ? "block" : "none")">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@Title</h5>
+                <button type="button" class="btn-close" @onclick="HideAsync"></button>
+            </div>
+            <div class="modal-body">
+                @if (ChildContent is not null)
+                {
+                    @ChildContent
+                }
+                else if (BodyTemplate is not null)
+                {
+                    @BodyTemplate
+                }
+            </div>
+            <div class="modal-footer">
+                @if (FooterTemplate is not null)
+                {
+                    @FooterTemplate
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Title { get; set; }
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public RenderFragment? BodyTemplate { get; set; }
+    [Parameter]
+    public RenderFragment? FooterTemplate { get; set; }
+    public bool Visible { get; set; }
+    public Task ShowAsync()
+    {
+        Visible = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+    public Task HideAsync()
+    {
+        Visible = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+}

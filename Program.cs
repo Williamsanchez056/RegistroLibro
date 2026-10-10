@@ -11,13 +11,23 @@ builder.Services.AddDbContextFactory<RegistroContext>(options =>
         ?? throw new InvalidOperationException(
             "Falta configurar la conexion ConStr.")));
 
-builder.Services.AddScoped<LibroService>();
-builder.Services.AddScoped<EstudianteService>();
+
+builder.Services.AddScoped<LibrosService>();
+builder.Services.AddScoped<EstudiantesService>();
+builder.Services.AddScoped<PrestamosService>();
+builder.Services.AddScoped<ToastService>(); 
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbFactory = scope.ServiceProvider.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<RegistroContext>>();
+    using var db = dbFactory.CreateDbContext();
+    db.Database.Migrate();
+}
 
 if (!app.Environment.IsDevelopment())
 {
@@ -30,9 +40,7 @@ app.UseStatusCodePagesWithReExecute(
     createScopeForStatusCodePages: true);
 
 app.UseHttpsRedirection();
-
 app.UseAntiforgery();
-
 app.MapStaticAssets();
 
 app.MapRazorComponents<App>()

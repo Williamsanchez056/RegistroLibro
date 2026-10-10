@@ -1,160 +1,120 @@
-﻿@page "/libros"
-@rendermode InteractiveServer
+﻿@page "/Libro"
+
+@using Microsoft.AspNetCore.Components.QuickGrid
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@using static Microsoft.AspNetCore.Components.Web.RenderMode
-@inject LibroService Servicio
 
-<PageTitle>Consulta de libros</PageTitle>
+@inject LibrosService Servicio
+@inject NavigationManager navigationManager
+@inject ToastService toastService
 
-<div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h3 class="mb-0">Consulta de libros</h3>
-    </div>
+@rendermode InteractiveServer
 
-    <div class="card-body">
-        <div class="row g-3 mb-3">
-            <div class="col-md-3">
-                <label class="form-label">Filtrar por</label>
-                <select class="form-select" @bind="filtro">
-                    <option value="Titulo">Titulo</option>
-                    <option value="Autor">Autor</option>
-                    <option value="LibroId">ID</option>
-                    <option value="AnoPublicacion">Año de publicacion</option>
-                </select>
-            </div>
+<PageTitle>Libros</PageTitle>
 
-            <div class="col-md-5">
-                <label class="form-label">Buscar</label>
-                <input class="form-control"
-                       @bind="busqueda"
-                       placeholder="Escribe tu busqueda" />
-            </div>
+<div class="container mt-4">
+    <div class="card">
 
-            <div class="col-md-4 d-flex align-items-end gap-2">
-                <button class="btn btn-primary" @onclick="Buscar">
-                    Buscar
-                </button>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Registro de Libros</h5>
 
-                <button class="btn btn-secondary" @onclick="Restablecer">
-                    Restablecer
-                </button>
-            </div>
+            <button class="btn btn-primary" @onclick="Crear">
+                Crear
+            </button>
         </div>
 
-        <a class="btn btn-success mb-3" href="/libros/crear">
-            Crear libro
-        </a>
+        <div class="card-body">
 
-        @if (cargando)
-        {
-            <p>Cargando libros...</p>
-        }
-        else if (libros.Count == 0)
-        {
-            <div class="alert alert-info">
-                No se encontraron libros.
-            </div>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Titulo</th>
-                            <th>Autor</th>
-                            <th>Año de publicacion</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var libro in libros)
-                        {
-                            <tr @key="libro.LibroId">
-                                <td>@libro.LibroId</td>
-                                <td>@libro.Titulo</td>
-                                <td>@libro.Autor</td>
-                                <td>@libro.AnoPublicacion</td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <a class="btn btn-warning btn-sm"
-                                           href="@($"/libros/editar/{libro.LibroId}")">
-                                            Editar
-                                        </a>
-
-                                        <a class="btn btn-danger btn-sm"
-                                           href="@($"/libros/eliminar/{libro.LibroId}")">
-                                            Eliminar
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            <div class="mb-3">
+                <input class="form-control"
+                       placeholder="Buscar por titulo o autor..."
+                       @bind="filtro"
+                       @bind:event="oninput" />
             </div>
 
-            <p class="text-muted">Total: @libros.Count libros</p>
-        }
+            <QuickGrid Items="LibrosFiltrados">
+
+                <PropertyColumn Property="@(l => l.LibroId)"
+                                Title="Id" />
+
+                <PropertyColumn Property="@(l => l.Titulo)"
+                                Title="Titulo" />
+
+                <PropertyColumn Property="@(l => l.Autor)"
+                                Title="Autor" />
+
+                <PropertyColumn Property="@(l => l.AnoPublicacion)"
+                                Title="Año" />
+
+                <PropertyColumn Property="@(l => l.CantidadDisponible)"
+                                Title="Cantidad Disponible" />
+
+                <TemplateColumn Title="Acciones">
+
+                    <button class="btn btn-sm btn-warning me-1"
+                            @onclick="() => Editar(context.LibroId)">
+                        Editar
+                    </button>
+
+                    <button class="btn btn-sm btn-danger"
+                            @onclick="() => Eliminar(context.LibroId)">
+                        Eliminar
+                    </button>
+
+                </TemplateColumn>
+
+            </QuickGrid>
+
+        </div>
     </div>
 </div>
 
 @code {
+
     private List<Libro> libros = new();
-    private string filtro = "Titulo";
-    private string busqueda = "";
-    private bool cargando = true;
+
+    private string filtro = string.Empty;
+
+    private IQueryable<Libro> LibrosFiltrados =>
+        libros
+            .Where(l =>
+                string.IsNullOrWhiteSpace(filtro) ||
+                l.Titulo.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                l.Autor.Contains(filtro, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
 
     protected override async Task OnInitializedAsync()
     {
-        await Buscar();
+        await Cargar();
     }
 
-    private async Task Buscar()
+    private async Task Cargar()
     {
-        cargando = true;
-
-        try
-        {
-            var texto = busqueda.Trim();
-
-            if (string.IsNullOrWhiteSpace(texto))
-            {
-                libros = await Servicio.GetList(l => true);
-            }
-            else if (filtro == "Titulo")
-            {
-                libros = await Servicio.GetList(l =>
-                    l.Titulo.Contains(texto));
-            }
-            else if (filtro == "Autor")
-            {
-                libros = await Servicio.GetList(l =>
-                    l.Autor.Contains(texto));
-            }
-            else if (int.TryParse(texto, out int numero))
-            {
-                libros = filtro == "LibroId"
-                    ? await Servicio.GetList(l => l.LibroId == numero)
-                    : await Servicio.GetList(l => l.AnoPublicacion == numero);
-            }
-            else
-            {
-                libros = new();
-            }
-        }
-        finally
-        {
-            cargando = false;
-        }
+        libros = await Servicio.Listar();
     }
 
-    private async Task Restablecer()
+    private void Crear()
     {
-        filtro = "Titulo";
-        busqueda = "";
-        await Buscar();
+        navigationManager.NavigateTo("/Libro/crear");
+    }
+
+    private void Editar(int id)
+    {
+        navigationManager.NavigateTo($"/Libro/editar/{id}");
+    }
+
+    private async Task Eliminar(int id)
+    {
+        var resultado = await Servicio.Eliminar(id);
+
+        if (resultado)
+        {
+            toastService.ShowSuccess("Libro eliminado correctamente.");
+            await Cargar();
+        }
+        else
+        {
+            toastService.ShowError("No se pudo eliminar el libro.");
+        }
     }
 }

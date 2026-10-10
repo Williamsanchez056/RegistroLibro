@@ -3,8 +3,11 @@
 
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@using static Microsoft.AspNetCore.Components.Web.RenderMode
-@inject EstudianteService Servicio
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+@inject EstudiantesService Servicio
+@inject NavigationManager navigationManager
+@inject ToastService toastService
 
 <PageTitle>Consulta de estudiantes</PageTitle>
 
@@ -14,11 +17,13 @@
     </div>
 
     <div class="card-body">
+
         <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <label for="busqueda" class="form-label">
                     Buscar por nombre
                 </label>
+
                 <input id="busqueda"
                        class="form-control"
                        @bind="busqueda"
@@ -26,76 +31,113 @@
             </div>
 
             <div class="col-md-6 d-flex align-items-end gap-2">
+
                 <button class="btn btn-primary"
-                        @onclick="Buscar"
-                        disabled="@cargando">
+                        @onclick="Buscar">
                     Buscar
                 </button>
 
                 <button class="btn btn-secondary"
-                        @onclick="Restablecer"
-                        disabled="@cargando">
+                        @onclick="Restablecer">
                     Restablecer
                 </button>
+
             </div>
         </div>
 
-        <a class="btn btn-success mb-3" href="/estudiantes/crear">
-            Registrar estudiante
-        </a>
+        <button class="btn btn-success mb-3"
+                @onclick="Nuevo">
+            Nuevo estudiante
+        </button>
 
         @if (cargando)
         {
             <p>Cargando estudiantes...</p>
         }
-        else if (estudiantes.Count == 0)
-        {
-            <div class="alert alert-info">
-                No se encontraron estudiantes.
-            </div>
-        }
         else
         {
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Nombres</th>
-                            <th>Direccion</th>
-                            <th>Email</th>
-                            <th>Fecha de nacimiento</th>
-                        </tr>
-                    </thead>
+            <QuickGrid Items="estudiantes.AsQueryable()"
+                       Class="table table-hover table-striped align-middle">
 
-                    <tbody>
-                        @foreach (var estudiante in estudiantes)
-                        {
-                            <tr @key="estudiante.EstudianteId">
-                                <td>@estudiante.EstudianteId</td>
-                                <td>@estudiante.Nombres</td>
-                                <td>@estudiante.Direccion</td>
-                                <td>@estudiante.Email</td>
-                                <td>
-                                    @(estudiante.FechaNacimiento?.ToString("dd/MM/yyyy"))
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                <PropertyColumn Property="@(e => e.EstudianteId)"
+                                Title="ID"
+                                Sortable="true" />
 
-            <p class="text-muted">
+                <PropertyColumn Property="@(e => e.Nombres)"
+                                Title="Nombres"
+                                Sortable="true" />
+
+                <PropertyColumn Property="@(e => e.Direccion)"
+                                Title="Dirección"
+                                Sortable="true" />
+
+                <PropertyColumn Property="@(e => e.Email)"
+                                Title="Email"
+                                Sortable="true" />
+
+                <PropertyColumn Property="@(e => e.FechaNacimiento)"
+                                Title="Fecha de nacimiento"
+                                Format="dd/MM/yyyy"
+                                Sortable="true" />
+
+                <TemplateColumn Title="Opciones">
+                    <div class="d-flex gap-2">
+                        <a href="/estudiantes/editar/@context.EstudianteId"
+                           class="btn btn-outline-primary btn-sm d-inline-flex align-items-center">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Editar
+                        </a>
+
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm d-inline-flex align-items-center"
+                                @onclick="() => MostrarModal(context.EstudianteId)">
+                            <i class="bi bi-trash me-1"></i> Eliminar
+                        </button>
+                    </div>
+                </TemplateColumn>
+
+            </QuickGrid>
+
+            <p class="text-muted mt-3">
                 Total: @estudiantes.Count estudiantes
             </p>
         }
+
     </div>
 </div>
+
+<Modal @ref="modal">
+    <div class="modal-header">
+        <h5 class="modal-title">Eliminar estudiante</h5>
+        <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+    </div>
+
+    <div class="modal-body">
+        ¿Está seguro de que desea eliminar este estudiante?
+    </div>
+
+    <div class="modal-footer">
+        <button type="button"
+                class="btn btn-secondary"
+                @onclick="CerrarModal">
+            Cancelar
+        </button>
+
+        <button type="button"
+                class="btn btn-danger"
+                @onclick="Eliminar">
+            Eliminar
+        </button>
+    </div>
+</Modal>
 
 @code {
     private List<Estudiante> estudiantes = new();
     private string busqueda = "";
     private bool cargando = true;
+
+    private int estudianteId;
+
+    private Modal modal = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,23 +148,49 @@
     {
         cargando = true;
 
-        try
-        {
-            var texto = busqueda.Trim();
+        var texto = busqueda.Trim();
 
-            estudiantes = string.IsNullOrWhiteSpace(texto)
-                ? await Servicio.Listar()
-                : await Servicio.GetList(e => e.Nombres.Contains(texto));
-        }
-        finally
-        {
-            cargando = false;
-        }
+        estudiantes = string.IsNullOrWhiteSpace(texto)
+            ? await Servicio.Listar()
+            : await Servicio.GetList(e => e.Nombres.Contains(texto));
+
+        cargando = false;
     }
 
     private async Task Restablecer()
     {
         busqueda = "";
         await Buscar();
+    }
+
+    private void Nuevo()
+    {
+        navigationManager.NavigateTo("/estudiantes/crear");
+    }
+
+    private async Task MostrarModal(int id)
+    {
+        estudianteId = id;
+        await modal.ShowAsync();
+    }
+
+    private async Task CerrarModal()
+    {
+        await modal.HideAsync();
+    }
+
+    private async Task Eliminar()
+    {
+        if (await Servicio.Eliminar(estudianteId))
+        {
+            toastService.ShowSuccess("Estudiante eliminado correctamente.");
+            await Buscar();
+        }
+        else
+        {
+            toastService.ShowError("No se pudo eliminar el estudiante.");
+        }
+
+        await modal.HideAsync();
     }
 }
