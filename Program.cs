@@ -22,6 +22,13 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbFactory = scope.ServiceProvider.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<RegistroContext>>();
+    using var db = dbFactory.CreateDbContext();
+    db.Database.Migrate();
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);

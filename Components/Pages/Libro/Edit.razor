@@ -43,6 +43,12 @@
                         <ValidationMessage For="@(() => libro.AnoPublicacion)" />
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad Disponible</label>
+                        <InputNumber class="form-control" @bind-Value="libro.CantidadDisponible" />
+                        <ValidationMessage For="@(() => libro.CantidadDisponible)" />
+                    </div>
+
                     <button type="submit" class="btn btn-primary">
                         Guardar Cambios
                     </button>

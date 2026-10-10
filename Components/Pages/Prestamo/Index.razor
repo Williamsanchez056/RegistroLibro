@@ -1,7 +1,7 @@
 ﻿@page "/prestamos"
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@inject RegistroLibro.Services.PrestamoService PrestamoService
+@inject RegistroLibro.Services.PrestamosService PrestamoService
 @rendermode InteractiveServer
 
 <div class="container mt-4">
@@ -57,6 +57,7 @@
                                 <th>Libro</th>
                                 <th>Fecha Prestamo</th>
                                 <th>Fecha Devolucion</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -65,9 +66,14 @@
                                 <tr>
                                     <td><strong>@item.PrestamoId</strong></td>
                                     <td>@item.Estudiante</td>
-                                    <td>@item.Libro?.Titulo</td>
+                                    <td>@item.Libro</td>
                                     <td>@item.FechaPrestamo.ToString("dd/MM/yyyy")</td>
                                     <td>@item.FechaDevolucion.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => MarcarDevuelto(item.PrestamoId)">
+                                            <i class="bi bi-trash me-1"></i>Devolver
+                                        </button>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -105,11 +111,20 @@
         }
     }
 
+    private async Task MarcarDevuelto(int id)
+    {
+        var resultado = await PrestamoService.Devolver(id);
+        if (resultado)
+        {
+            await CargarDatos();
+        }
+    }
+
     private List<Prestamo> PrestamosFiltrados =>
         string.IsNullOrWhiteSpace(terminoBusqueda)
             ? listaPrestamos
                 : listaPrestamos.Where(p =>
                 p.Estudiante.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
-                (p.Libro != null && p.Libro.Titulo.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
+                (p.Libro != null && p.Libro.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
             ).ToList();
 }

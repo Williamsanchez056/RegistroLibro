@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
 using RegistroLibro.Models;
 using System.Linq.Expressions;
+using System.Linq;
 namespace RegistroLibro.Services;
 
 public class LibrosService : IService<Libro, int>
@@ -67,6 +68,29 @@ public class LibrosService : IService<Libro, int>
             return false;
         contexto.Libros.Remove(libro);
         return await contexto.SaveChangesAsync() > 0;
+    }
+
+    public async Task<List<LibroConPromedio>> ObtenerLibrosConPromedioDiasPrestado()
+    {
+        using var contexto = await _factory.CreateDbContextAsync();
+        var prestamos = await contexto.Prestamos
+            .AsNoTracking()
+            .ToListAsync();
+
+        var resultado = prestamos
+            .Where(p => !string.IsNullOrWhiteSpace(p.Libro))
+            .GroupBy(p => p.Libro!)
+            .Select(g => new LibroConPromedio
+            {
+                LibroId = 0,
+                Titulo = g.Key,
+                Autor = string.Empty,
+                PromedioDias = g.Average(p => ((p.FechaEntrega ?? p.FechaDevolucion) - p.FechaPrestamo).TotalDays)
+            })
+            .OrderBy(lp => lp.Titulo)
+            .ToList();
+
+        return resultado;
     }
 }
 

@@ -2,7 +2,6 @@
 @using RegistroLibro.Models
 @using RegistroLibro.Services
 @inject PrestamosService PrestamoService
-@inject LibrosService LibroService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 <div class="container mt-4">
@@ -23,14 +22,8 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Libro:</label>
-                    <InputSelect class="form-select" @bind-Value="nuevoPrestamo.LibroId">
-                        <option value="">-- Seleccione --</option>
-                        @foreach (var libro in libros)
-                        {
-                            <option value="@libro.LibroId">@libro.Titulo</option>
-                        }
-                    </InputSelect>
-                    <ValidationMessage For="@(() => nuevoPrestamo.LibroId)" />
+                    <InputText class="form-control" placeholder="Ej: El quijote" @bind-value="nuevoPrestamo.Libro" />
+                    <ValidationMessage For="@(() => nuevoPrestamo.Libro)" />
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -57,11 +50,6 @@
 </div>
 @code {
     private Prestamo nuevoPrestamo = new();
-    private List<Libro> libros = new();
-    protected override async Task OnInitializedAsync()
-    {
-        libros = await LibroService.Listar();
-    }
     private async Task GuardarPrestamo()
     {
         var guardado = await PrestamoService.Guardar(nuevoPrestamo);

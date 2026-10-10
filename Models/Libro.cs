@@ -12,4 +12,5 @@ public class Libro
     [Required(ErrorMessage = "Debes de introducir el año de publicación.")]
     [Range(1999, 2026, ErrorMessage = "Escribe un año entre 1999 y 2026.")]
     public int? AnoPublicacion { get; set; }
+    public int CantidadDisponible { get; set; } = 0;
 }

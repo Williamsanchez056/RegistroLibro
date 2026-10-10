@@ -30,6 +30,11 @@
                     <InputNumber class="form-control" @bind-Value="libro.AnoPublicacion" />
                     <ValidationMessage For="@(() => libro.AnoPublicacion)" />
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Cantidad Disponible</label>
+                    <InputNumber class="form-control" @bind-Value="libro.CantidadDisponible" />
+                    <ValidationMessage For="@(() => libro.CantidadDisponible)" />
+                </div>
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 <button type="button" class="btn btn-secondary ms-2" @onclick="Volver">Cancelar</button>
             </EditForm>
