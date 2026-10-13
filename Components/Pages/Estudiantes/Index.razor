@@ -75,7 +75,10 @@
     {
         cargando = true;
         var texto = busqueda.Trim();
-        var resultado = await Servicio.GetList(e => string.IsNullOrWhiteSpace(texto) || e.Nombres.Contains(texto));
+        var criterio = string.IsNullOrWhiteSpace(texto)
+            ? (System.Linq.Expressions.Expression<Func<Estudiante, bool>>)(e => true)
+            : e => e.Nombres.Contains(texto);
+        var resultado = await Servicio.GetList(criterio);
         if (resultado.IsSuccess)
             estudiantes = resultado.Value;
         else
