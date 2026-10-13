@@ -11,90 +11,47 @@
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
-            <h4 class="mb-0">
-                <i class="bi bi-arrow-return-left me-2"></i>Consulta de devoluciones
-            </h4>
-            <a href="/devoluciones/crear" class="btn btn-light btn-sm text-primary fw-bold">
-                <i class="bi bi-plus-circle me-1"></i>Registrar devolución
-            </a>
+            <h4 class="mb-0"><i class="bi bi-arrow-return-left me-2"></i>Consulta de devoluciones</h4>
+            <a href="/devoluciones/crear" class="btn btn-light btn-sm text-primary fw-bold"><i class="bi bi-plus-circle me-1"></i>Registrar devolución</a>
         </div>
-
         <div class="card-body">
             <div class="row mb-3 g-2 align-items-center">
-                <div class="col-md-6">
-                    <input class="form-control"
-                           placeholder="Buscar por estudiante o libro..."
-                           @bind="terminoBusqueda"
-                           @bind:event="oninput" />
-                </div>
-                <div class="col-md-6 text-md-end text-muted">
-                    Total: <strong>@DevolucionesFiltradas.Count</strong>
-                </div>
+                <div class="col-md-6"><input class="form-control" placeholder="Buscar por estudiante o libro..." @bind="terminoBusqueda" @bind:event="oninput" /></div>
+                <div class="col-md-6 text-md-end text-muted">Total: <strong>@DevolucionesFiltradas.Count</strong></div>
             </div>
-
             @if (cargando)
             {
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
+                <div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><span class="visually-hidden">Cargando...</span></div>
             }
             else if (!DevolucionesFiltradas.Any())
             {
-                <div class="alert alert-info text-center my-4">
-                    Todavía no hay devoluciones registradas.
-                </div>
+                <div class="alert alert-info text-center my-4">Todavía no hay devoluciones registradas.</div>
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
+                <div class="table-responsive"><table class="table table-hover align-middle">
+                    <thead class="table-light"><tr><th>#</th><th>Estudiante</th><th>Libro</th><th>Fecha de préstamo</th><th>Fecha de devolución</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                        @foreach (var item in DevolucionesFiltradas)
+                        {
                             <tr>
-                                <th>#</th>
-                                <th>Estudiante</th>
-                                <th>Libro</th>
-                                <th>Fecha de préstamo</th>
-                                <th>Fecha de devolución</th>
-                                <th>Acciones</th>
+                                <td><strong>@item.DevolucionId</strong></td><td>@(item.Prestamo?.Estudiante ?? "—")</td><td>@(item.Prestamo?.Libro ?? "—")</td>
+                                <td>@(item.Prestamo?.FechaPrestamo.ToString("dd/MM/yyyy") ?? "—")</td><td>@item.FechaDevolucion.ToString("dd/MM/yyyy")</td>
+                                <td><div class="d-flex gap-2">
+                                    <a href="/devoluciones/editar/@item.DevolucionId" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square me-1"></i>Editar</a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => PrepararEliminacion(item.DevolucionId)"><i class="bi bi-trash me-1"></i>Eliminar</button>
+                                </div></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in DevolucionesFiltradas)
-                            {
-                                <tr>
-                                    <td><strong>@item.DevolucionId</strong></td>
-                                    <td>@(item.Prestamo?.Estudiante ?? "—")</td>
-                                    <td>@(item.Prestamo?.Libro ?? "—")</td>
-                                    <td>@(item.Prestamo?.FechaPrestamo.ToString("dd/MM/yyyy") ?? "—")</td>
-                                    <td>@item.FechaDevolucion.ToString("dd/MM/yyyy")</td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <a href="/devoluciones/editar/@item.DevolucionId"
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-pencil-square me-1"></i>Editar
-                                            </a>
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-danger"
-                                                    @onclick="() => PrepararEliminacion(item.DevolucionId)">
-                                                <i class="bi bi-trash me-1"></i>Eliminar
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                        }
+                    </tbody>
+                </table></div>
             }
         </div>
     </div>
 </div>
 
 <Modal @ref="modal" Title="Eliminar devolución">
-    <BodyTemplate>
-        <p>¿Deseas eliminar esta devolución? El préstamo volverá a quedar pendiente.</p>
-    </BodyTemplate>
+    <BodyTemplate><p>¿Deseas eliminar esta devolución? El préstamo volverá a quedar pendiente.</p></BodyTemplate>
     <FooterTemplate>
         <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
         <button type="button" class="btn btn-danger" @onclick="Eliminar">Sí, eliminar</button>
@@ -113,30 +70,22 @@
             ? devoluciones
             : devoluciones.Where(d =>
                 (d.Prestamo?.Estudiante?.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (d.Prestamo?.Libro?.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ?? false))
-                .ToList();
+                (d.Prestamo?.Libro?.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
 
-    protected override async Task OnInitializedAsync()
-    {
-        await CargarDatos();
-    }
+    protected override async Task OnInitializedAsync() => await CargarDatos();
 
     private async Task CargarDatos()
     {
         cargando = true;
-        try
+        var resultado = await Servicio.GetList(d => true);
+        if (resultado.IsSuccess)
+            devoluciones = resultado.Value;
+        else
         {
-            devoluciones = await Servicio.Listar();
+            devoluciones = new();
+            toastService.ShowError(resultado.Error.Description);
         }
-        catch
-        {
-            devoluciones = new List<Devolucion>();
-            toastService.ShowError("No se pudieron cargar las devoluciones.");
-        }
-        finally
-        {
-            cargando = false;
-        }
+        cargando = false;
     }
 
     private async Task PrepararEliminacion(int id)
@@ -145,23 +94,18 @@
         await modal.ShowAsync();
     }
 
-    private async Task CerrarModal()
-    {
-        await modal.HideAsync();
-    }
+    private async Task CerrarModal() => await modal.HideAsync();
 
     private async Task Eliminar()
     {
-        var eliminado = await Servicio.Eliminar(devolucionIdAEliminar);
-        if (eliminado)
+        var resultado = await Servicio.Eliminar(devolucionIdAEliminar);
+        if (resultado.IsSuccess)
         {
             toastService.ShowSuccess("Devolución eliminada. El préstamo quedó pendiente.");
             await CargarDatos();
         }
         else
-        {
-            toastService.ShowError("No se pudo eliminar la devolución.");
-        }
+            toastService.ShowError(resultado.Error.Description);
 
         await modal.HideAsync();
     }

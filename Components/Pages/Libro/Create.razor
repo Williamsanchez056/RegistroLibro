@@ -1,16 +1,16 @@
-﻿@page "/Libro/crear"
+@page "/Libro/crear"
 @using RegistroLibro.Models
 @using RegistroLibro.Services
 @inject LibrosService Servicio
 @inject NavigationManager navigationManager
 @inject ToastService toastService
 @rendermode InteractiveServer
+
 <PageTitle>Crear Libro</PageTitle>
+
 <div class="container mt-4">
     <div class="card">
-        <div class="card-header">
-            <h5>Registro de Libro</h5>
-        </div>
+        <div class="card-header"><h5>Registro de Libro</h5></div>
         <div class="card-body">
             <EditForm Model="libro" OnValidSubmit="Guardar">
                 <DataAnnotationsValidator />
@@ -41,23 +41,23 @@
         </div>
     </div>
 </div>
+
 @code {
     private Libro libro = new();
+
     private async Task Guardar()
     {
         var resultado = await Servicio.Guardar(libro);
-        if (resultado)
+        if (resultado.IsSuccess)
         {
             toastService.ShowSuccess("Libro guardado correctamente.");
             navigationManager.NavigateTo("/Libro");
         }
         else
         {
-            toastService.ShowError("Ya existe un libro con ese titulo.");
+            toastService.ShowError(resultado.Error.Description);
         }
     }
-    private void Volver()
-    {
-        navigationManager.NavigateTo("/Libro");
-    }
+
+    private void Volver() => navigationManager.NavigateTo("/Libro");
 }

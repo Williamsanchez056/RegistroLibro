@@ -1,4 +1,4 @@
-﻿using Aplicada1.Core;
+using Aplicada1.Core;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 
 namespace RegistroLibro.Services;
 
-public class EstudiantesService : IService<Estudiante, int>
+public class EstudiantesService : IServiceResult<Estudiante, int>
 {
     private readonly IDbContextFactory<RegistroContext> _factory;
 
@@ -16,89 +16,134 @@ public class EstudiantesService : IService<Estudiante, int>
         _factory = factory;
     }
 
-    public async Task<bool> Guardar(Estudiante estudiante)
+    public async Task<Result> Guardar(Estudiante estudiante)
     {
-        await using var contexto = await _factory.CreateDbContextAsync();
-
-        estudiante.Nombres = estudiante.Nombres.Trim();
-        estudiante.Direccion = estudiante.Direccion.Trim();
-        estudiante.Email = estudiante.Email.Trim();
-
-        bool repetido = await contexto.Estudiantes.AnyAsync(e =>
-            e.Nombres == estudiante.Nombres &&
-            e.EstudianteId != estudiante.EstudianteId);
-
-        if (repetido)
-            return false;
-
-        if (estudiante.EstudianteId == 0)
-            contexto.Estudiantes.Add(estudiante);
-        else
-            contexto.Estudiantes.Update(estudiante);
+        if (string.IsNullOrWhiteSpace(estudiante.Nombres))
+            return Result.Failure(new Error("VALIDATION", "El nombre del estudiante es obligatorio."));
 
         try
         {
+            await using var contexto = await _factory.CreateDbContextAsync();
+
+            estudiante.Nombres = estudiante.Nombres.Trim();
+            estudiante.Direccion = estudiante.Direccion.Trim();
+            estudiante.Email = estudiante.Email.Trim();
+
+            bool repetido = await contexto.Estudiantes.AnyAsync(e =>
+                e.Nombres == estudiante.Nombres &&
+                e.EstudianteId != estudiante.EstudianteId);
+
+            if (repetido)
+                return Result.Failure(new Error("DUPLICATE_NAME", "Ya existe un estudiante con ese nombre."));
+
+            if (estudiante.EstudianteId == 0)
+                contexto.Estudiantes.Add(estudiante);
+            else
+            {
+                var existente = await contexto.Estudiantes.FindAsync(estudiante.EstudianteId);
+                if (existente is null)
+                    return Result.Failure(new Error("NOT_FOUND", "No se encontro el estudiante."));
+
+                existente.Nombres = estudiante.Nombres;
+                existente.Direccion = estudiante.Direccion;
+                existente.Email = estudiante.Email;
+                existente.FechaNacimiento = estudiante.FechaNacimiento;
+            }
+
             await contexto.SaveChangesAsync();
-            return true;
+            return Result.Success();
         }
         catch (DbUpdateException ex) when (
             ex.InnerException is SqlException sql &&
             (sql.Number == 2601 || sql.Number == 2627))
         {
-            return false;
+            return Result.Failure(new Error("DUPLICATE_NAME", "Ya existe un estudiante con ese nombre."));
+        }
+        catch
+        {
+            return Result.Failure(new Error("DATABASE_ERROR", "No se pudo guardar el estudiante."));
         }
     }
 
-    public async Task<List<Estudiante>> Listar()
+    public async Task<Result<List<Estudiante>>> GetList(Expression<Func<Estudiante, bool>> criterio)
     {
-        return await GetList(e => true);
+        try
+        {
+            await using var contexto = await _factory.CreateDbContextAsync();
+            var estudiantes = await contexto.Estudiantes
+                .Where(criterio)
+                .AsNoTracking()
+                .OrderBy(e => e.Nombres)
+                .ToListAsync();
+
+            return Result.Success(estudiantes);
+        }
+        catch
+        {
+            return Result.Failure<List<Estudiante>>(new Error("DATABASE_ERROR", "No se pudieron consultar los estudiantes."));
+        }
     }
 
-    public async Task<List<Estudiante>> GetList(Expression<Func<Estudiante, bool>> criterio)
+    public async Task<Result<Estudiante?>> Buscar(int id)
     {
-        await using var contexto = await _factory.CreateDbContextAsync();
+        try
+        {
+            await using var contexto = await _factory.CreateDbContextAsync();
+            var estudiante = await contexto.Estudiantes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.EstudianteId == id);
 
-        return await contexto.Estudiantes
-            .Where(criterio)
-            .AsNoTracking()
-            .OrderBy(e => e.Nombres)
-            .ToListAsync();
+            return estudiante is null
+                ? Result.Failure<Estudiante?>(new Error("NOT_FOUND", "No se encontro el estudiante."))
+                : Result.Success<Estudiante?>(estudiante);
+        }
+        catch
+        {
+            return Result.Failure<Estudiante?>(new Error("DATABASE_ERROR", "No se pudo consultar el estudiante."));
+        }
     }
 
-    public async Task<Estudiante?> Buscar(int id)
+    public async Task<Result> Eliminar(int id)
     {
-        await using var contexto = await _factory.CreateDbContextAsync();
+        try
+        {
+            await using var contexto = await _factory.CreateDbContextAsync();
+            var estudiante = await contexto.Estudiantes.FindAsync(id);
 
-        return await contexto.Estudiantes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.EstudianteId == id);
+            if (estudiante is null)
+                return Result.Failure(new Error("NOT_FOUND", "No se encontro el estudiante."));
+
+            var tienePrestamos = await contexto.Prestamos
+                .AnyAsync(p => p.Estudiante == estudiante.Nombres);
+
+            if (tienePrestamos)
+                return Result.Failure(new Error("LOAN_EXISTS", "No se puede eliminar un estudiante que tiene prestamos registrados."));
+
+            contexto.Estudiantes.Remove(estudiante);
+            await contexto.SaveChangesAsync();
+            return Result.Success();
+        }
+        catch
+        {
+            return Result.Failure(new Error("DATABASE_ERROR", "No se pudo eliminar el estudiante."));
+        }
     }
 
-    public async Task<bool> ExisteNombre(string nombres, int estudianteId = 0)
+    public async Task<Result<bool>> ExisteNombre(string nombres, int estudianteId = 0)
     {
-        await using var contexto = await _factory.CreateDbContextAsync();
+        try
+        {
+            await using var contexto = await _factory.CreateDbContextAsync();
+            var nombre = nombres.Trim();
+            var existe = await contexto.Estudiantes.AnyAsync(e =>
+                e.Nombres == nombre &&
+                e.EstudianteId != estudianteId);
 
-        var nombre = nombres.Trim();
-        return await contexto.Estudiantes.AnyAsync(e =>
-            e.Nombres == nombre &&
-            e.EstudianteId != estudianteId);
-    }
-
-    public async Task<bool> Eliminar(int id)
-    {
-        await using var contexto = await _factory.CreateDbContextAsync();
-
-        var estudiante = await contexto.Estudiantes.FindAsync(id);
-        if (estudiante is null)
-            return false;
-
-        var tienePrestamos = await contexto.Prestamos
-            .AnyAsync(p => p.Estudiante == estudiante.Nombres);
-
-        if (tienePrestamos)
-            return false;
-
-        contexto.Estudiantes.Remove(estudiante);
-        return await contexto.SaveChangesAsync() > 0;
+            return Result.Success(existe);
+        }
+        catch
+        {
+            return Result.Failure<bool>(new Error("DATABASE_ERROR", "No se pudo validar el nombre del estudiante."));
+        }
     }
 }

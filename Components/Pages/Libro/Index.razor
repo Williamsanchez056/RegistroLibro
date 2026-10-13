@@ -73,10 +73,23 @@
 
     private async Task Cargar()
     {
-        libros = await Servicio.Listar();
+        var librosResult = await Servicio.GetList(l => true);
+        if (librosResult.IsSuccess)
+            libros = librosResult.Value;
+        else
+        {
+            libros = new();
+            toastService.ShowError(librosResult.Error.Description);
+        }
 
-        var librosConPromedio = await Servicio.ObtenerLibrosConPromedioDiasPrestado();
-        promediosDias = librosConPromedio.ToDictionary(l => l.LibroId, l => l.PromedioDias);
+        var promedioResult = await Servicio.ObtenerLibrosConPromedioDiasPrestado();
+        if (promedioResult.IsSuccess)
+            promediosDias = promedioResult.Value.ToDictionary(l => l.LibroId, l => l.PromedioDias);
+        else
+        {
+            promediosDias = new();
+            toastService.ShowError(promedioResult.Error.Description);
+        }
     }
 
     private double ObtenerPromedioDiasPrestado(int libroId)
@@ -84,28 +97,22 @@
         return promediosDias.TryGetValue(libroId, out var promedio) ? promedio : 0;
     }
 
-    private void Crear()
-    {
-        navigationManager.NavigateTo("/Libro/crear");
-    }
+    private void Crear() => navigationManager.NavigateTo("/Libro/crear");
 
-    private void Editar(int id)
-    {
-        navigationManager.NavigateTo($"/Libro/editar/{id}");
-    }
+    private void Editar(int id) => navigationManager.NavigateTo($"/Libro/editar/{id}");
 
     private async Task Eliminar(int id)
     {
         var resultado = await Servicio.Eliminar(id);
 
-        if (resultado)
+        if (resultado.IsSuccess)
         {
             toastService.ShowSuccess("Libro eliminado correctamente.");
             await Cargar();
         }
         else
         {
-            toastService.ShowError("No se puede eliminar el libro porque tiene prestamos pendientes o ocurrio un error.");
+            toastService.ShowError(resultado.Error.Description);
         }
     }
 }
