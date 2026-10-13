@@ -1,0 +1,93 @@
+@page "/devoluciones/editar/{Id:int}"
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+@inject DevolucionesService Servicio
+@inject NavigationManager Navigation
+@inject ToastService toastService
+@rendermode InteractiveServer
+
+<PageTitle>Editar devolución</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0 col-md-8 mx-auto">
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0">
+                <i class="bi bi-pencil-square me-2"></i>Editar devolución
+            </h4>
+        </div>
+
+        <div class="card-body p-4">
+            @if (cargando)
+            {
+                <p class="text-muted">Cargando devolución...</p>
+            }
+            else if (!encontrada)
+            {
+                <div class="alert alert-warning">No se encontró la devolución solicitada.</div>
+                <a href="/devoluciones" class="btn btn-secondary">Volver</a>
+            }
+            else
+            {
+                <EditForm Model="devolucion" OnValidSubmit="Guardar">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger mb-3" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Préstamo</label>
+                        <input class="form-control"
+                               value="@($"#{devolucion.PrestamoId} - {devolucion.Prestamo?.Estudiante} / {devolucion.Prestamo?.Libro}")"
+                               disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Fecha de devolución</label>
+                        <InputDate class="form-control" @bind-Value="devolucion.FechaDevolucion" />
+                        <ValidationMessage For="@(() => devolucion.FechaDevolucion)" />
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="/devoluciones" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i>Guardar cambios
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Devolucion devolucion = new();
+    private bool cargando = true;
+    private bool encontrada;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var encontradaDevolucion = await Servicio.Buscar(Id);
+        if (encontradaDevolucion is not null)
+        {
+            devolucion = encontradaDevolucion;
+            encontrada = true;
+        }
+
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        var guardado = await Servicio.Guardar(devolucion);
+        if (guardado)
+        {
+            toastService.ShowSuccess("Devolución actualizada correctamente.");
+            Navigation.NavigateTo("/devoluciones");
+        }
+        else
+        {
+            toastService.ShowError("No se pudieron guardar los cambios.");
+        }
+    }
+}
