@@ -2,6 +2,7 @@
 @using RegistroLibro.Models
 @using RegistroLibro.Services
 @inject PrestamosService PrestamoService
+@inject ToastService toastService
 @rendermode InteractiveServer
 
 <PageTitle>Consulta de préstamos</PageTitle>
@@ -9,95 +10,54 @@
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
-            <h4 class="mb-0">
-                <i class="bi bi-journal-check me-2"></i>Consulta de préstamos
-            </h4>
+            <h4 class="mb-0"><i class="bi bi-journal-check me-2"></i>Consulta de préstamos</h4>
             <a href="/prestamos/crear" class="btn btn-light btn-sm text-primary fw-bold shadow-sm">
                 <i class="bi bi-plus-circle me-1"></i>Nuevo préstamo
             </a>
         </div>
-
         <div class="card-body">
             <div class="row mb-3 g-2 align-items-center">
                 <div class="col-md-5">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0">
-                            <i class="bi bi-search text-muted"></i>
-                        </span>
-                        <input type="text"
-                               class="form-control border-start-0 ps-0"
-                               placeholder="Filtrar por estudiante o libro..."
-                               @bind="terminoBusqueda"
-                               @bind:event="oninput" />
-                    </div>
+                    <input type="text" class="form-control" placeholder="Filtrar por estudiante o libro..."
+                           @bind="terminoBusqueda" @bind:event="oninput" />
                 </div>
-                <div class="col-md-7 text-md-end text-muted">
-                    Total: <strong>@PrestamosFiltrados.Count</strong>
-                </div>
+                <div class="col-md-7 text-md-end text-muted">Total: <strong>@PrestamosFiltrados.Count</strong></div>
             </div>
 
             @if (cargando)
             {
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
+                <div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><span class="visually-hidden">Cargando...</span></div>
             }
             else if (!PrestamosFiltrados.Any())
             {
-                <div class="alert alert-info text-center my-4">
-                    No hay registros de préstamos.
-                </div>
+                <div class="alert alert-info text-center my-4">No hay registros de préstamos.</div>
             }
             else
             {
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
-                            <tr>
-                                <th>#</th>
-                                <th>Estudiante</th>
-                                <th>Libro</th>
-                                <th>Fecha préstamo</th>
-                                <th>Fecha límite</th>
-                                <th>Fecha entregado</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
+                            <tr><th>#</th><th>Estudiante</th><th>Libro</th><th>Fecha préstamo</th><th>Fecha límite</th><th>Fecha entregado</th><th>Estado</th><th>Acciones</th></tr>
                         </thead>
                         <tbody>
                             @foreach (var item in PrestamosFiltrados)
                             {
                                 <tr>
-                                    <td><strong>@item.PrestamoId</strong></td>
-                                    <td>@item.Estudiante</td>
-                                    <td>@item.Libro</td>
-                                    <td>@item.FechaPrestamo.ToString("dd/MM/yyyy")</td>
-                                    <td>@item.FechaDevolucion.ToString("dd/MM/yyyy")</td>
+                                    <td><strong>@item.PrestamoId</strong></td><td>@item.Estudiante</td><td>@item.Libro</td>
+                                    <td>@item.FechaPrestamo.ToString("dd/MM/yyyy")</td><td>@item.FechaDevolucion.ToString("dd/MM/yyyy")</td>
                                     <td>@(item.FechaEntrega?.ToString("dd/MM/yyyy") ?? "—")</td>
                                     <td>
-                                        @if (item.FechaEntrega.HasValue)
-                                        {
-                                            <span class="badge bg-success">Devuelto</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-warning text-dark">Pendiente</span>
-                                        }
+                                        @if (item.FechaEntrega.HasValue) { <span class="badge bg-success">Devuelto</span> }
+                                        else { <span class="badge bg-warning text-dark">Pendiente</span> }
                                     </td>
                                     <td>
                                         @if (!item.FechaEntrega.HasValue)
                                         {
-                                            <a href="/devoluciones/crear/@item.PrestamoId"
-                                               class="btn btn-sm btn-outline-primary text-nowrap">
-                                                <i class="bi bi-arrow-return-left me-1"></i>Registrar devolución
-                                            </a>
+                                            <a href="/devoluciones/crear/@item.PrestamoId" class="btn btn-sm btn-outline-primary text-nowrap"><i class="bi bi-arrow-return-left me-1"></i>Registrar devolución</a>
                                         }
                                         else
                                         {
-                                            <a href="/devoluciones" class="btn btn-sm btn-outline-secondary text-nowrap">
-                                                Ver devoluciones
-                                            </a>
+                                            <a href="/devoluciones" class="btn btn-sm btn-outline-secondary text-nowrap">Ver devoluciones</a>
                                         }
                                     </td>
                                 </tr>
@@ -120,28 +80,21 @@
             ? listaPrestamos
             : listaPrestamos.Where(p =>
                 p.Estudiante.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
-                p.Libro.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+                p.Libro.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)).ToList();
 
-    protected override async Task OnInitializedAsync()
-    {
-        await CargarDatos();
-    }
+    protected override async Task OnInitializedAsync() => await CargarDatos();
 
     private async Task CargarDatos()
     {
         cargando = true;
-        try
+        var resultado = await PrestamoService.GetList(p => true);
+        if (resultado.IsSuccess)
+            listaPrestamos = resultado.Value;
+        else
         {
-            listaPrestamos = await PrestamoService.Listar();
+            listaPrestamos = new();
+            toastService.ShowError(resultado.Error.Description);
         }
-        catch
-        {
-            listaPrestamos = new List<Prestamo>();
-        }
-        finally
-        {
-            cargando = false;
-        }
+        cargando = false;
     }
 }
