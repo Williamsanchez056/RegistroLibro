@@ -15,7 +15,8 @@ builder.Services.AddDbContextFactory<RegistroContext>(options =>
 builder.Services.AddScoped<LibrosService>();
 builder.Services.AddScoped<EstudiantesService>();
 builder.Services.AddScoped<PrestamosService>();
-builder.Services.AddScoped<ToastService>(); 
+builder.Services.AddScoped<DevolucionesService>();
+builder.Services.AddScoped<ToastService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -24,7 +25,7 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbFactory = scope.ServiceProvider.GetRequiredService<Microsoft.EntityFrameworkCore.IDbContextFactory<RegistroContext>>();
+    var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<RegistroContext>>();
     using var db = dbFactory.CreateDbContext();
     db.Database.Migrate();
 }

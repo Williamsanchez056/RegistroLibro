@@ -1,17 +1,19 @@
-﻿@page "/prestamos"
+@page "/prestamos"
 @using RegistroLibro.Models
 @using RegistroLibro.Services
-@inject RegistroLibro.Services.PrestamosService PrestamoService
+@inject PrestamosService PrestamoService
 @rendermode InteractiveServer
+
+<PageTitle>Consulta de préstamos</PageTitle>
 
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
             <h4 class="mb-0">
-                <i class="bi bi-journal-check me-2"></i>Consulta de Prestamos
+                <i class="bi bi-journal-check me-2"></i>Consulta de préstamos
             </h4>
-            <a href="prestamos/crear" class="btn btn-light btn-sm text-primary fw-bold shadow-sm">
-                <i class="bi bi-plus-circle me-1"></i>Nuevo Prestamo
+            <a href="/prestamos/crear" class="btn btn-light btn-sm text-primary fw-bold shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i>Nuevo préstamo
             </a>
         </div>
 
@@ -30,7 +32,7 @@
                     </div>
                 </div>
                 <div class="col-md-7 text-md-end text-muted">
-                    Total: <strong>@(PrestamosFiltrados?.Count ?? 0)</strong>
+                    Total: <strong>@PrestamosFiltrados.Count</strong>
                 </div>
             </div>
 
@@ -38,12 +40,13 @@
             {
                 <div class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
+                    <span class="visually-hidden">Cargando...</span>
                 </div>
             }
-            else if (listaPrestamos == null || !listaPrestamos.Any())
+            else if (!PrestamosFiltrados.Any())
             {
                 <div class="alert alert-info text-center my-4">
-                    No hay registros de prestamos.
+                    No hay registros de préstamos.
                 </div>
             }
             else
@@ -55,8 +58,10 @@
                                 <th>#</th>
                                 <th>Estudiante</th>
                                 <th>Libro</th>
-                                <th>Fecha Prestamo</th>
-                                <th>Fecha Devolucion</th>
+                                <th>Fecha préstamo</th>
+                                <th>Fecha límite</th>
+                                <th>Fecha entregado</th>
+                                <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -69,10 +74,31 @@
                                     <td>@item.Libro</td>
                                     <td>@item.FechaPrestamo.ToString("dd/MM/yyyy")</td>
                                     <td>@item.FechaDevolucion.ToString("dd/MM/yyyy")</td>
+                                    <td>@(item.FechaEntrega?.ToString("dd/MM/yyyy") ?? "—")</td>
                                     <td>
-                                        <button class="btn btn-sm btn-danger" @onclick="() => MarcarDevuelto(item.PrestamoId)">
-                                            <i class="bi bi-trash me-1"></i>Devolver
-                                        </button>
+                                        @if (item.FechaEntrega.HasValue)
+                                        {
+                                            <span class="badge bg-success">Devuelto</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">Pendiente</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!item.FechaEntrega.HasValue)
+                                        {
+                                            <a href="/devoluciones/crear/@item.PrestamoId"
+                                               class="btn btn-sm btn-outline-primary text-nowrap">
+                                                <i class="bi bi-arrow-return-left me-1"></i>Registrar devolución
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a href="/devoluciones" class="btn btn-sm btn-outline-secondary text-nowrap">
+                                                Ver devoluciones
+                                            </a>
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -89,6 +115,14 @@
     private string terminoBusqueda = string.Empty;
     private bool cargando = true;
 
+    private List<Prestamo> PrestamosFiltrados =>
+        string.IsNullOrWhiteSpace(terminoBusqueda)
+            ? listaPrestamos
+            : listaPrestamos.Where(p =>
+                p.Estudiante.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
+                p.Libro.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
@@ -101,7 +135,7 @@
         {
             listaPrestamos = await PrestamoService.Listar();
         }
-        catch (Exception)
+        catch
         {
             listaPrestamos = new List<Prestamo>();
         }
@@ -110,21 +144,4 @@
             cargando = false;
         }
     }
-
-    private async Task MarcarDevuelto(int id)
-    {
-        var resultado = await PrestamoService.Devolver(id);
-        if (resultado)
-        {
-            await CargarDatos();
-        }
-    }
-
-    private List<Prestamo> PrestamosFiltrados =>
-        string.IsNullOrWhiteSpace(terminoBusqueda)
-            ? listaPrestamos
-                : listaPrestamos.Where(p =>
-                p.Estudiante.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
-                (p.Libro != null && p.Libro.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
-            ).ToList();
 }
