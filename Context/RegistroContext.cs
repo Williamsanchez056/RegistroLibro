@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Models;
+
 namespace RegistroLibro.Context;
 
 public class RegistroContext : DbContext
@@ -8,12 +9,16 @@ public class RegistroContext : DbContext
         : base(options)
     {
     }
+
     public DbSet<Libro> Libros { get; set; }
     public DbSet<Estudiante> Estudiantes { get; set; }
     public DbSet<Prestamo> Prestamos { get; set; }
+    public DbSet<Devolucion> Devoluciones { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Libro>().ToTable("Libro");
         modelBuilder.Entity<Libro>()
             .Property(l => l.AnoPublicacion)
@@ -21,6 +26,7 @@ public class RegistroContext : DbContext
         modelBuilder.Entity<Libro>()
             .HasIndex(l => l.Titulo)
             .IsUnique();
+
         modelBuilder.Entity<Estudiante>().ToTable("Estudiantes");
         modelBuilder.Entity<Estudiante>()
             .Property(e => e.Nombres)
@@ -34,6 +40,14 @@ public class RegistroContext : DbContext
             .Property(e => e.FechaNacimiento)
             .HasColumnType("date")
             .IsRequired();
+
         modelBuilder.Entity<Prestamo>().ToTable("Prestamos");
+
+        modelBuilder.Entity<Devolucion>().ToTable("Devoluciones");
+        modelBuilder.Entity<Devolucion>()
+            .HasOne(d => d.Prestamo)
+            .WithMany()
+            .HasForeignKey(d => d.PrestamoId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
