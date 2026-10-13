@@ -1,41 +1,53 @@
 # Registro de Libros
 
-**Nombre:** Williams Rafael Sanchez Acosta
-**Matricula:** 2023-0136
-**Asignatura:** Programacion Aplicada 1
+**Nombre:** Williams Rafael Sanchez Acosta  
+**Matricula:** 2023-0136  
+**Asignatura:** Programacion Aplicada 1  
 **Universidad:** Universidad Catolica Nordestana (UCNE)
 
 ## Sobre el proyecto
 
-Este proyecto consiste en una aplicacion web para registrar libros, desarrollada con C# y Blazor. Lo realice para poner en practica lo aprendido en clase sobre formularios y las operaciones CRUD: crear, consultar, editar y eliminar registros.
+Aplicacion web desarrollada con C# y Blazor para administrar libros, estudiantes, prestamos y devoluciones. El proyecto utiliza Entity Framework Core para trabajar con SQL Server.
 
-## ¿Que permite hacer?
+## Funciones principales
 
-* Agregar un libro con su titulo, autor y año de publicacion.
-* Consultar los libros registrados.
-* Editar los datos de un libro.
-* Eliminar un libro del registro.
+- Registrar, consultar, editar y eliminar libros.
+- Registrar y consultar estudiantes.
+- Crear prestamos y consultar su estado.
+- Registrar la devolucion de un prestamo sin borrar el historial del prestamo.
+- Consultar el promedio de dias que los libros devueltos estuvieron prestados.
+- Buscar registros desde las pantallas de consulta.
 
-Cada libro tiene un identificador que se genera automaticamente al guardarlo.
+La propiedad `CantidadDisponible` forma parte del modelo de libro. Su valor se registra, pero el flujo de prestamos y devoluciones todavia no lo modifica automaticamente.
 
-## Tecnologias utilizadas
+## Tecnologias
 
-Utilice C# y Blazor para desarrollar la aplicacion, junto con HTML, CSS y Bootstrap para la presentacion de las pantallas.
+- C#
+- .NET 10
+- Blazor con renderizado interactivo en servidor
+- Entity Framework Core 10
+- SQL Server
+- Bootstrap y QuickGrid
 
-## Como se utiliza
+## Ejecutar el proyecto
 
-Desde el menu se puede entrar a **Crear libro**, completar los datos y presionar **Guardar**. Para ver los libros agregados, se accede a **Consulta de libros**, donde tambien se encuentran las opciones para editar o eliminar un registro.
+1. Abre la solucion `RegistroLibro.slnx` con Visual Studio o abre una terminal en la carpeta del proyecto.
+2. Verifica que SQL Server LocalDB este instalado y disponible.
+3. Revisa la cadena `ConStr` en `appsettings.json` para confirmar que apunta a la instancia de base de datos de tu equipo.
+4. Ejecuta:
 
-## Lo aprendido
+   ```powershell
+   dotnet restore
+   dotnet build
+   dotnet run
+   ```
 
-Con esta tarea pude practicar como trabajar con formularios en Blazor y como organizar las funciones basicas de un registro. Tambien me ayudo a comprender mejor el proceso de agregar, consultar, modificar y eliminar informacion dentro de una aplicacion.
+La aplicacion aplica las migraciones de Entity Framework Core al iniciar. Usa una base de datos local de desarrollo y no guardes archivos de base de datos locales en el repositorio.
 
+## Estructura
 
- 
-
- 
-
- 
-
- 
-
+- `Models`: modelos de libros, estudiantes, prestamos y devoluciones.
+- `Context`: contexto de Entity Framework Core.
+- `Services`: operaciones de datos y reglas de validacion.
+- `Components/Pages`: pantallas de la aplicacion.
+- `Migrations`: migraciones de la base de datos.
