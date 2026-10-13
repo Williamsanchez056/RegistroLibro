@@ -30,12 +30,6 @@ public class DevolucionesService : IService<Devolucion, int>
             if (devolucion.FechaDevolucion.Date < prestamo.FechaPrestamo.Date)
                 return false;
 
-            var libro = await contexto.Libros
-                .FirstOrDefaultAsync(l => l.Titulo == prestamo.Libro);
-
-            if (libro is not null)
-                libro.CantidadDisponible++;
-
             prestamo.FechaEntrega = devolucion.FechaDevolucion;
             contexto.Devoluciones.Add(new Devolucion
             {
@@ -57,7 +51,9 @@ public class DevolucionesService : IService<Devolucion, int>
             if (prestamo is null ||
                 devolucion.PrestamoId != existente.PrestamoId ||
                 devolucion.FechaDevolucion.Date < prestamo.FechaPrestamo.Date)
+            {
                 return false;
+            }
 
             existente.FechaDevolucion = devolucion.FechaDevolucion;
             prestamo.FechaEntrega = devolucion.FechaDevolucion;
@@ -108,12 +104,6 @@ public class DevolucionesService : IService<Devolucion, int>
 
         if (prestamo is null)
             return false;
-
-        var libro = await contexto.Libros
-            .FirstOrDefaultAsync(l => l.Titulo == prestamo.Libro);
-
-        if (libro is not null && libro.CantidadDisponible > 0)
-            libro.CantidadDisponible--;
 
         prestamo.FechaEntrega = null;
         contexto.Devoluciones.Remove(devolucion);
