@@ -5,7 +5,6 @@
 @using RegistroLibro.Services
 
 @inject LibrosService Servicio
-@inject DevolucionesService DevolucionesServicio
 @inject NavigationManager navigationManager
 @inject ToastService toastService
 
@@ -35,8 +34,8 @@
                 <PropertyColumn Property="@(l => l.AnoPublicacion)" Title="Año" />
                 <PropertyColumn Property="@(l => l.CantidadDisponible)" Title="Cantidad disponible" />
 
-                <TemplateColumn Title="Promedio de días prestado">
-                    @ObtenerPromedioDiasPrestado(context.Titulo).ToString("N2")
+                <TemplateColumn Title="Promedio de dias prestado">
+                    @ObtenerPromedioDiasPrestado(context.LibroId).ToString("N2")
                 </TemplateColumn>
 
                 <TemplateColumn Title="Acciones">
@@ -50,14 +49,13 @@
                     </button>
                 </TemplateColumn>
             </QuickGrid>
-
         </div>
     </div>
 </div>
 
 @code {
     private List<Libro> libros = new();
-    private List<Devolucion> devoluciones = new();
+    private Dictionary<int, double> promediosDias = new();
     private string filtro = string.Empty;
 
     private IQueryable<Libro> LibrosFiltrados =>
@@ -76,19 +74,14 @@
     private async Task Cargar()
     {
         libros = await Servicio.Listar();
-        devoluciones = await DevolucionesServicio.Listar();
+
+        var librosConPromedio = await Servicio.ObtenerLibrosConPromedioDiasPrestado();
+        promediosDias = librosConPromedio.ToDictionary(l => l.LibroId, l => l.PromedioDias);
     }
 
-    private double ObtenerPromedioDiasPrestado(string titulo)
+    private double ObtenerPromedioDiasPrestado(int libroId)
     {
-        var diasPrestado = devoluciones
-            .Where(d => d.Prestamo is not null &&
-                string.Equals(d.Prestamo.Libro.Trim(), titulo.Trim(), StringComparison.OrdinalIgnoreCase))
-            .Select(d => (d.FechaDevolucion.Date - d.Prestamo!.FechaPrestamo.Date).TotalDays)
-            .Where(dias => dias >= 0)
-            .ToList();
-
-        return diasPrestado.Count == 0 ? 0 : diasPrestado.Average();
+        return promediosDias.TryGetValue(libroId, out var promedio) ? promedio : 0;
     }
 
     private void Crear()
@@ -112,7 +105,7 @@
         }
         else
         {
-            toastService.ShowError("No se puede eliminar el libro porque tiene préstamos pendientes o ocurrió un error.");
+            toastService.ShowError("No se puede eliminar el libro porque tiene prestamos pendientes o ocurrio un error.");
         }
     }
 }
