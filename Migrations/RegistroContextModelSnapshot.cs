@@ -119,6 +119,38 @@ namespace RegistroLibro.Migrations
 
                     b.ToTable("Prestamos", (string)null);
                 });
+
+            modelBuilder.Entity("RegistroLibro.Models.Devolucion", b =>
+                {
+                    b.Property<int>("DevolucionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DevolucionId"));
+
+                    b.Property<DateTime>("FechaDevolucion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PrestamoId")
+                        .HasColumnType("int");
+
+                    b.HasKey("DevolucionId");
+
+                    b.HasIndex("PrestamoId");
+
+                    b.ToTable("Devoluciones", (string)null);
+                });
+
+            modelBuilder.Entity("RegistroLibro.Models.Devolucion", b =>
+                {
+                    b.HasOne("RegistroLibro.Models.Prestamo", "Prestamo")
+                        .WithMany()
+                        .HasForeignKey("PrestamoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Prestamo");
+                });
 #pragma warning restore 612, 618
         }
     }
