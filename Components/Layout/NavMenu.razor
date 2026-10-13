@@ -9,7 +9,6 @@
 
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="flex-column">
-        
         <div class="nav-item px-3">
             <NavLink class="nav-link d-flex align-items-center" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu me-2" aria-hidden="true"></span>
@@ -59,6 +58,19 @@
             </NavLink>
         </div>
 
+        <div class="nav-item px-3">
+            <NavLink class="nav-link d-flex align-items-center" href="devoluciones">
+                <span class="bi bi-arrow-return-left me-2" aria-hidden="true"></span>
+                <span>Consulta de devoluciones</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link d-flex align-items-center" href="devoluciones/crear">
+                <span class="bi bi-plus-circle me-2" aria-hidden="true"></span>
+                <span>Registrar devolución</span>
+            </NavLink>
+        </div>
     </nav>
 </div>
 
