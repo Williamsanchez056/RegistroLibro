@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace RegistroLibro.Services;
 
-public class PrestamosService : IService<Prestamo, int>
+public class PrestamosService : IServiceResult<Prestamo, int>
 {
     private readonly IDbContextFactory<RegistroContext> _factory;
 
@@ -15,82 +15,109 @@ public class PrestamosService : IService<Prestamo, int>
         _factory = factory;
     }
 
-    public async Task<bool> Guardar(Prestamo prestamo)
+    public async Task<Result> Guardar(Prestamo prestamo)
     {
         if (string.IsNullOrWhiteSpace(prestamo.Libro) ||
             string.IsNullOrWhiteSpace(prestamo.Estudiante) ||
             prestamo.FechaDevolucion.Date < prestamo.FechaPrestamo.Date)
         {
-            return false;
+            return Result.Failure(new Error("VALIDATION", "El libro, el estudiante y un rango de fechas valido son obligatorios."));
         }
 
         prestamo.Libro = prestamo.Libro.Trim();
         prestamo.Estudiante = prestamo.Estudiante.Trim();
 
-        await using var contexto = await _factory.CreateDbContextAsync();
-
-        if (prestamo.PrestamoId == 0)
+        try
         {
-            contexto.Prestamos.Add(prestamo);
+            await using var contexto = await _factory.CreateDbContextAsync();
+
+            if (prestamo.PrestamoId == 0)
+            {
+                contexto.Prestamos.Add(prestamo);
+            }
+            else
+            {
+                var existente = await contexto.Prestamos
+                    .FirstOrDefaultAsync(p => p.PrestamoId == prestamo.PrestamoId);
+
+                if (existente is null)
+                    return Result.Failure(new Error("NOT_FOUND", "No se encontro el prestamo."));
+
+                existente.Libro = prestamo.Libro;
+                existente.Estudiante = prestamo.Estudiante;
+                existente.FechaPrestamo = prestamo.FechaPrestamo;
+                existente.FechaDevolucion = prestamo.FechaDevolucion;
+                existente.Observaciones = prestamo.Observaciones;
+            }
+
+            await contexto.SaveChangesAsync();
+            return Result.Success();
         }
-        else
+        catch
         {
-            var existente = await contexto.Prestamos
-                .FirstOrDefaultAsync(p => p.PrestamoId == prestamo.PrestamoId);
-
-            if (existente is null)
-                return false;
-
-            existente.Libro = prestamo.Libro;
-            existente.Estudiante = prestamo.Estudiante;
-            existente.FechaPrestamo = prestamo.FechaPrestamo;
-            existente.FechaDevolucion = prestamo.FechaDevolucion;
-            existente.Observaciones = prestamo.Observaciones;
+            return Result.Failure(new Error("DATABASE_ERROR", "No se pudo guardar el prestamo."));
         }
-
-        return await contexto.SaveChangesAsync() > 0;
     }
 
-    public async Task<List<Prestamo>> Listar()
+    public async Task<Result<List<Prestamo>>> GetList(Expression<Func<Prestamo, bool>> criterio)
     {
-        return await GetList(p => true);
+        try
+        {
+            await using var contexto = await _factory.CreateDbContextAsync();
+            var prestamos = await contexto.Prestamos
+                .Where(criterio)
+                .AsNoTracking()
+                .OrderByDescending(p => p.FechaPrestamo)
+                .ToListAsync();
+
+            return Result.Success(prestamos);
+        }
+        catch
+        {
+            return Result.Failure<List<Prestamo>>(new Error("DATABASE_ERROR", "No se pudieron consultar los prestamos."));
+        }
     }
 
-    public async Task<List<Prestamo>> GetList(Expression<Func<Prestamo, bool>> criterio)
+    public async Task<Result<Prestamo?>> Buscar(int id)
     {
-        await using var contexto = await _factory.CreateDbContextAsync();
+        try
+        {
+            await using var contexto = await _factory.CreateDbContextAsync();
+            var prestamo = await contexto.Prestamos
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.PrestamoId == id);
 
-        return await contexto.Prestamos
-            .Where(criterio)
-            .AsNoTracking()
-            .OrderByDescending(p => p.FechaPrestamo)
-            .ToListAsync();
+            return prestamo is null
+                ? Result.Failure<Prestamo?>(new Error("NOT_FOUND", "No se encontro el prestamo."))
+                : Result.Success<Prestamo?>(prestamo);
+        }
+        catch
+        {
+            return Result.Failure<Prestamo?>(new Error("DATABASE_ERROR", "No se pudo consultar el prestamo."));
+        }
     }
 
-    public async Task<Prestamo?> Buscar(int id)
+    public async Task<Result> Eliminar(int id)
     {
-        await using var contexto = await _factory.CreateDbContextAsync();
+        try
+        {
+            await using var contexto = await _factory.CreateDbContextAsync();
+            var prestamo = await contexto.Prestamos.FindAsync(id);
 
-        return await contexto.Prestamos
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.PrestamoId == id);
-    }
+            if (prestamo is null)
+                return Result.Failure(new Error("NOT_FOUND", "No se encontro el prestamo."));
 
-    public async Task<bool> Eliminar(int id)
-    {
-        await using var contexto = await _factory.CreateDbContextAsync();
+            var tieneDevolucion = await contexto.Devoluciones.AnyAsync(d => d.PrestamoId == id);
+            if (tieneDevolucion)
+                return Result.Failure(new Error("RETURN_EXISTS", "No se puede eliminar un prestamo que tiene una devolucion registrada."));
 
-        var prestamo = await contexto.Prestamos.FindAsync(id);
-        if (prestamo is null)
-            return false;
-
-        var tieneDevolucion = await contexto.Devoluciones
-            .AnyAsync(d => d.PrestamoId == id);
-
-        if (tieneDevolucion)
-            return false;
-
-        contexto.Prestamos.Remove(prestamo);
-        return await contexto.SaveChangesAsync() > 0;
+            contexto.Prestamos.Remove(prestamo);
+            await contexto.SaveChangesAsync();
+            return Result.Success();
+        }
+        catch
+        {
+            return Result.Failure(new Error("DATABASE_ERROR", "No se pudo eliminar el prestamo."));
+        }
     }
 }
