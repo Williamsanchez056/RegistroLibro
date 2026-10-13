@@ -20,6 +20,10 @@ Aplicacion web desarrollada con C# y Blazor para administrar libros, estudiantes
 
 La propiedad `CantidadDisponible` forma parte del modelo de libro. Su valor se registra, pero el flujo de prestamos y devoluciones todavia no lo modifica automaticamente.
 
+## Manejo de resultados
+
+Los servicios de libros, estudiantes, prestamos y devoluciones implementan `IServiceResult<T, int>` de `Aplicada1.Core`. Las operaciones CRUD devuelven objetos `Result` o `Result<T>`, lo que permite consultar `IsSuccess`, `IsFailure` y `Error.Description` para manejar errores de validacion y de acceso a datos.
+
 ## Tecnologias
 
 - C#
@@ -27,6 +31,7 @@ La propiedad `CantidadDisponible` forma parte del modelo de libro. Su valor se r
 - Blazor con renderizado interactivo en servidor
 - Entity Framework Core 10
 - SQL Server
+- Aplicada1.Core 1.1.0
 - Bootstrap y QuickGrid
 
 ## Ejecutar el proyecto
@@ -48,6 +53,6 @@ La aplicacion aplica las migraciones de Entity Framework Core al iniciar. Usa un
 
 - `Models`: modelos de libros, estudiantes, prestamos y devoluciones.
 - `Context`: contexto de Entity Framework Core.
-- `Services`: operaciones de datos y reglas de validacion.
+- `Services`: operaciones de datos, resultados y reglas de validacion.
 - `Components/Pages`: pantallas de la aplicacion.
 - `Migrations`: migraciones de la base de datos.
