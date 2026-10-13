@@ -1,4 +1,4 @@
-﻿using Aplicada1.Core;
+using Aplicada1.Core;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
@@ -95,22 +95,48 @@ public class LibrosService : IService<Libro, int>
     {
         await using var contexto = await _factory.CreateDbContextAsync();
 
-        var prestamos = await contexto.Prestamos
+        var libros = await contexto.Libros
             .AsNoTracking()
+            .OrderBy(l => l.Titulo)
             .ToListAsync();
 
-        return prestamos
+        var prestamosDevueltos = await contexto.Prestamos
+            .AsNoTracking()
+            .Where(p => p.FechaEntrega.HasValue)
+            .ToListAsync();
+
+        var promediosPorTitulo = prestamosDevueltos
             .Where(p => !string.IsNullOrWhiteSpace(p.Libro))
-            .GroupBy(p => p.Libro)
-            .Select(g => new LibroConPromedio
+            .Select(p => new
             {
-                LibroId = 0,
-                Titulo = g.Key,
-                Autor = string.Empty,
-                PromedioDias = g.Average(p =>
-                    ((p.FechaEntrega ?? p.FechaDevolucion) - p.FechaPrestamo).TotalDays)
+                Titulo = p.Libro.Trim(),
+                p.FechaPrestamo,
+                FechaEntrega = p.FechaEntrega.GetValueOrDefault()
             })
-            .OrderBy(lp => lp.Titulo)
-            .ToList();
+            .Where(p => p.FechaEntrega.Date >= p.FechaPrestamo.Date)
+            .GroupBy(p => p.Titulo, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                grupo => grupo.Key,
+                grupo => grupo.Average(p =>
+                    (grupoFecha(p.FechaEntrega, p.FechaPrestamo))),
+                StringComparer.OrdinalIgnoreCase);
+
+        return libros.Select(libro =>
+        {
+            promediosPorTitulo.TryGetValue(libro.Titulo.Trim(), out var promedio);
+
+            return new LibroConPromedio
+            {
+                LibroId = libro.LibroId,
+                Titulo = libro.Titulo,
+                Autor = libro.Autor,
+                PromedioDias = promedio
+            };
+        }).ToList();
+    }
+
+    private static double grupoFecha(DateTime fechaEntrega, DateTime fechaPrestamo)
+    {
+        return (fechaEntrega.Date - fechaPrestamo.Date).TotalDays;
     }
 }
