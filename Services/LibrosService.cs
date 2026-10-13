@@ -118,7 +118,7 @@ public class LibrosService : IService<Libro, int>
             .ToDictionary(
                 grupo => grupo.Key,
                 grupo => grupo.Average(p =>
-                    (grupoFecha(p.FechaEntrega, p.FechaPrestamo))),
+                    (p.FechaEntrega.Date - p.FechaPrestamo.Date).TotalDays),
                 StringComparer.OrdinalIgnoreCase);
 
         return libros.Select(libro =>
@@ -133,10 +133,5 @@ public class LibrosService : IService<Libro, int>
                 PromedioDias = promedio
             };
         }).ToList();
-    }
-
-    private static double grupoFecha(DateTime fechaEntrega, DateTime fechaPrestamo)
-    {
-        return (fechaEntrega.Date - fechaPrestamo.Date).TotalDays;
     }
 }
