@@ -1,0 +1,111 @@
+@page "/Entradas"
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+
+@inject EntradasService Servicio
+@inject NavigationManager navigationManager
+@inject ToastService toastService
+
+@rendermode InteractiveServer
+
+<PageTitle>Entradas</PageTitle>
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Registro de Entradas</h5>
+            <button class="btn btn-primary" @onclick="Crear">Registrar entrada</button>
+        </div>
+
+        <div class="card-body">
+            <div class="mb-3">
+                <input class="form-control"
+                       placeholder="Buscar por concepto o libro..."
+                       @bind="filtro"
+                       @bind:event="oninput" />
+            </div>
+
+            <QuickGrid Items="EntradasFiltradas">
+                <PropertyColumn Property="@(entrada => entrada.EntradaId)" Title="Id" />
+                <PropertyColumn Property="@(entrada => entrada.Fecha)" Title="Fecha" Format="dd/MM/yyyy" />
+                <PropertyColumn Property="@(entrada => entrada.Concepto)" Title="Concepto" />
+                <TemplateColumn Title="Libros">
+                    @ResumenDetalles(context)
+                </TemplateColumn>
+                <PropertyColumn Property="@(entrada => entrada.Total)" Title="Total de unidades" />
+
+                <TemplateColumn Title="Acciones">
+                    <button class="btn btn-sm btn-warning me-1"
+                            @onclick="() => Editar(context.EntradaId)">
+                        Editar
+                    </button>
+                    <button class="btn btn-sm btn-danger"
+                            @onclick="() => Eliminar(context.EntradaId)">
+                        Eliminar
+                    </button>
+                </TemplateColumn>
+            </QuickGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Entrada> entradas = new();
+    private string filtro = string.Empty;
+
+    private IQueryable<Entrada> EntradasFiltradas =>
+        entradas
+            .Where(entrada =>
+                string.IsNullOrWhiteSpace(filtro) ||
+                entrada.Concepto.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
+                ResumenDetalles(entrada).Contains(filtro, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        var resultado = await Servicio.GetList(entrada => true);
+
+        if (resultado.IsSuccess)
+            entradas = resultado.Value;
+        else
+        {
+            entradas = new();
+            toastService.ShowError(resultado.Error.Description);
+        }
+    }
+
+    private string ResumenDetalles(Entrada entrada)
+    {
+        return string.Join(", ", entrada.Detalles.Select(detalle =>
+        {
+            var titulo = detalle.Libro?.Titulo ?? $"Libro {detalle.LibroId}";
+            return $"{titulo} x {detalle.Cantidad}";
+        }));
+    }
+
+    private void Crear() => navigationManager.NavigateTo("/Entradas/crear");
+
+    private void Editar(int id) => navigationManager.NavigateTo($"/Entradas/editar/{id}");
+
+    private async Task Eliminar(int id)
+    {
+        var resultado = await Servicio.Eliminar(id);
+
+        if (resultado.IsSuccess)
+        {
+            toastService.ShowSuccess("Entrada eliminada correctamente.");
+            await Cargar();
+        }
+        else
+        {
+            toastService.ShowError(resultado.Error.Description);
+        }
+    }
+}
