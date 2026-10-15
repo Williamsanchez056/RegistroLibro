@@ -120,6 +120,55 @@ namespace RegistroLibro.Migrations
                     b.ToTable("Prestamos", (string)null);
                 });
 
+            modelBuilder.Entity("RegistroLibro.Models.Entrada", b =>
+                {
+                    b.Property<int>("EntradaId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EntradaId"));
+
+                    b.Property<string>("Concepto")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Total")
+                        .HasColumnType("int");
+
+                    b.HasKey("EntradaId");
+
+                    b.ToTable("Entradas", (string)null);
+                });
+
+            modelBuilder.Entity("RegistroLibro.Models.EntradasDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EntradaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LibroId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntradaId");
+
+                    b.HasIndex("LibroId");
+
+                    b.ToTable("EntradasDetalle", (string)null);
+                });
+
             modelBuilder.Entity("RegistroLibro.Models.Devolucion", b =>
                 {
                     b.Property<int>("DevolucionId")
@@ -151,6 +200,25 @@ namespace RegistroLibro.Migrations
 
                     b.Navigation("Prestamo");
                 });
+            modelBuilder.Entity("RegistroLibro.Models.EntradasDetalle", b =>
+                {
+                    b.HasOne("RegistroLibro.Models.Entrada", "Entrada")
+                        .WithMany("Detalles")
+                        .HasForeignKey("EntradaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RegistroLibro.Models.Libro", "Libro")
+                        .WithMany()
+                        .HasForeignKey("LibroId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Entrada");
+
+                    b.Navigation("Libro");
+                });
+
 #pragma warning restore 612, 618
         }
     }

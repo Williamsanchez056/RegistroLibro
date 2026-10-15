@@ -14,6 +14,8 @@ public class RegistroContext : DbContext
     public DbSet<Estudiante> Estudiantes { get; set; }
     public DbSet<Prestamo> Prestamos { get; set; }
     public DbSet<Devolucion> Devoluciones { get; set; }
+    public DbSet<Entrada> Entradas { get; set; }
+    public DbSet<EntradasDetalle> EntradasDetalle { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,6 +50,22 @@ public class RegistroContext : DbContext
             .HasOne(d => d.Prestamo)
             .WithMany()
             .HasForeignKey(d => d.PrestamoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Entrada>().ToTable("Entradas");
+
+        modelBuilder.Entity<Entrada>()
+            .HasMany(e => e.Detalles)
+            .WithOne(d => d.Entrada)
+            .HasForeignKey(d => d.EntradaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<EntradasDetalle>().ToTable("EntradasDetalle");
+
+        modelBuilder.Entity<EntradasDetalle>()
+            .HasOne(d => d.Libro)
+            .WithMany()
+            .HasForeignKey(d => d.LibroId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
