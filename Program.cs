@@ -16,6 +16,7 @@ builder.Services.AddScoped<LibrosService>();
 builder.Services.AddScoped<EstudiantesService>();
 builder.Services.AddScoped<PrestamosService>();
 builder.Services.AddScoped<DevolucionesService>();
+builder.Services.AddScoped<EntradasService>();
 builder.Services.AddScoped<ToastService>();
 
 builder.Services.AddRazorComponents()
