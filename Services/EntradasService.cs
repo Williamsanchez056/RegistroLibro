@@ -17,9 +17,6 @@ public class EntradasService : IServiceResult<Entrada, int>
 
     public async Task<Result> Guardar(Entrada entrada)
     {
-        if (string.IsNullOrWhiteSpace(entrada.Concepto))
-            return Result.Failure(new Error("VALIDATION", "El concepto es obligatorio."));
-
         if (entrada.Detalles is null || entrada.Detalles.Count == 0)
             return Result.Failure(new Error("DETAILS_REQUIRED", "Agrega por lo menos un libro a la entrada."));
 
@@ -79,7 +76,6 @@ public class EntradasService : IServiceResult<Entrada, int>
             foreach (var cantidad in cantidadesFinales)
                 libros[cantidad.Key].CantidadDisponible = cantidad.Value;
 
-            var concepto = entrada.Concepto.Trim();
             var total = entrada.Detalles.Sum(detalle => detalle.Cantidad);
 
             if (entradaActual is null)
@@ -87,7 +83,6 @@ public class EntradasService : IServiceResult<Entrada, int>
                 var nuevaEntrada = new Entrada
                 {
                     Fecha = entrada.Fecha,
-                    Concepto = concepto,
                     Total = total,
                     Detalles = entrada.Detalles.Select(detalle => new EntradasDetalle
                     {
@@ -101,7 +96,6 @@ public class EntradasService : IServiceResult<Entrada, int>
             else
             {
                 entradaActual.Fecha = entrada.Fecha;
-                entradaActual.Concepto = concepto;
                 entradaActual.Total = total;
 
                 contexto.EntradasDetalle.RemoveRange(entradaActual.Detalles);
