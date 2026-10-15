@@ -22,15 +22,14 @@
         <div class="card-body">
             <div class="mb-3">
                 <input class="form-control"
-                       placeholder="Buscar por concepto o libro..."
+                       placeholder="Buscar por libro..."
                        @bind="filtro"
                        @bind:event="oninput" />
             </div>
 
             <QuickGrid Items="EntradasFiltradas">
                 <PropertyColumn Property="@(entrada => entrada.EntradaId)" Title="Id" />
-                <PropertyColumn Property="@(entrada => entrada.Fecha)" Title="Fecha" Format="dd/MM/yyyy" />
-                <PropertyColumn Property="@(entrada => entrada.Concepto)" Title="Concepto" />
+                <PropertyColumn Property="@(entrada => entrada.Fecha)" Title="Fecha" />
                 <TemplateColumn Title="Libros">
                     @ResumenDetalles(context)
                 </TemplateColumn>
@@ -59,7 +58,6 @@
         entradas
             .Where(entrada =>
                 string.IsNullOrWhiteSpace(filtro) ||
-                entrada.Concepto.Contains(filtro, StringComparison.OrdinalIgnoreCase) ||
                 ResumenDetalles(entrada).Contains(filtro, StringComparison.OrdinalIgnoreCase))
             .AsQueryable();
 
