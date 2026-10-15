@@ -20,6 +20,7 @@ public partial class AgregarEntradasConDetalle : Migration
                 EntradaId = table.Column<int>(type: "int", nullable: false)
                     .Annotation("SqlServer:Identity", "1, 1"),
                 Fecha = table.Column<DateTime>(type: "datetime2", nullable: false),
+                Concepto = table.Column<string>(type: "nvarchar(max)", nullable: false),
                 Total = table.Column<int>(type: "int", nullable: false)
             },
             constraints: table =>
