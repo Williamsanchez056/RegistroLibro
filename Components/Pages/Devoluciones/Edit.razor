@@ -6,19 +6,19 @@
 @inject ToastService toastService
 @rendermode InteractiveServer
 
-<PageTitle>Editar devolución</PageTitle>
+<PageTitle>Editar devolucion</PageTitle>
 
 <div class="container mt-4">
     <div class="card shadow-sm border-0 col-md-8 mx-auto">
-        <div class="card-header bg-primary text-white py-3"><h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Editar devolución</h4></div>
+        <div class="card-header bg-primary text-white py-3"><h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Editar devolucion</h4></div>
         <div class="card-body p-4">
             @if (cargando)
             {
-                <p class="text-muted">Cargando devolución...</p>
+                <p class="text-muted">Cargando devolucion...</p>
             }
             else if (!encontrada || devolucion is null)
             {
-                <div class="alert alert-warning">No se encontró la devolución solicitada.</div>
+                <div class="alert alert-warning">No se encontro la devolucion solicitada.</div>
                 <a href="/devoluciones" class="btn btn-secondary">Volver</a>
             }
             else
@@ -27,11 +27,11 @@
                     <DataAnnotationsValidator />
                     <ValidationSummary class="text-danger mb-3" />
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Préstamo</label>
+                        <label class="form-label fw-semibold">Prestamo</label>
                         <input class="form-control" value="@($"#{devolucion.PrestamoId} - {devolucion.Prestamo?.Estudiante} / {devolucion.Prestamo?.Libro}")" disabled />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Fecha de devolución</label>
+                        <label class="form-label fw-semibold">Fecha de devolucion</label>
                         <InputDate class="form-control" @bind-Value="devolucion.FechaDevolucion" />
                         <ValidationMessage For="@(() => devolucion.FechaDevolucion)" />
                     </div>
@@ -71,7 +71,7 @@
         var resultado = await Servicio.Guardar(devolucion);
         if (resultado.IsSuccess)
         {
-            toastService.ShowSuccess("Devolución actualizada correctamente.");
+            toastService.ShowSuccess("Devolucion actualizada correctamente.");
             Navigation.NavigateTo("/devoluciones");
         }
         else
