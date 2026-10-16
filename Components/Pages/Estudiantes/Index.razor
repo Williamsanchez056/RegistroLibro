@@ -35,7 +35,7 @@
             <QuickGrid Items="estudiantes.AsQueryable()" Class="table table-hover table-striped align-middle">
                 <PropertyColumn Property="@(e => e.EstudianteId)" Title="ID" Sortable="true" />
                 <PropertyColumn Property="@(e => e.Nombres)" Title="Nombres" Sortable="true" />
-                <PropertyColumn Property="@(e => e.Direccion)" Title="Dirección" Sortable="true" />
+                <PropertyColumn Property="@(e => e.Direccion)" Title="Direccion" Sortable="true" />
                 <PropertyColumn Property="@(e => e.Email)" Title="Email" Sortable="true" />
                 <PropertyColumn Property="@(e => e.FechaNacimiento)" Title="Fecha de nacimiento" Format="dd/MM/yyyy" Sortable="true" />
                 <TemplateColumn Title="Opciones">
@@ -55,7 +55,7 @@
         <h5 class="modal-title">Eliminar estudiante</h5>
         <button type="button" class="btn-close" @onclick="CerrarModal"></button>
     </div>
-    <div class="modal-body">¿Está seguro de que desea eliminar este estudiante?</div>
+    <div class="modal-body">¿Esta seguro de que desea eliminar este estudiante?</div>
     <div class="modal-footer">
         <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
         <button type="button" class="btn btn-danger" @onclick="Eliminar">Eliminar</button>
