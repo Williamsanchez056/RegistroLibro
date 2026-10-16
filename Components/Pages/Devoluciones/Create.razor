@@ -8,16 +8,16 @@
 @inject ToastService toastService
 @rendermode InteractiveServer
 
-<PageTitle>Registrar devolución</PageTitle>
+<PageTitle>Registrar devolucion</PageTitle>
 
 <div class="container mt-4">
     <div class="card shadow-sm border-0 col-md-8 mx-auto">
-        <div class="card-header bg-primary text-white py-3"><h4 class="mb-0"><i class="bi bi-arrow-return-left me-2"></i>Registrar devolución</h4></div>
+        <div class="card-header bg-primary text-white py-3"><h4 class="mb-0"><i class="bi bi-arrow-return-left me-2"></i>Registrar devolucion</h4></div>
         <div class="card-body p-4">
             @if (prestamosDisponibles.Count == 0)
             {
-                <div class="alert alert-info">No hay préstamos pendientes de devolución.</div>
-                <a href="/prestamos" class="btn btn-secondary">Volver a préstamos</a>
+                <div class="alert alert-info">No hay prestamos pendientes de devolucion.</div>
+                <a href="/prestamos" class="btn btn-secondary">Volver a prestamos</a>
             }
             else
             {
@@ -25,9 +25,9 @@
                     <DataAnnotationsValidator />
                     <ValidationSummary class="text-danger mb-3" />
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Préstamo</label>
+                        <label class="form-label fw-semibold">Prestamo</label>
                         <InputSelect class="form-select" @bind-Value="devolucion.PrestamoId">
-                            <option value="0">Seleccione un préstamo...</option>
+                            <option value="0">Seleccione un prestamo...</option>
                             @foreach (var prestamo in prestamosDisponibles)
                             {
                                 <option value="@prestamo.PrestamoId">#@prestamo.PrestamoId - @prestamo.Estudiante / @prestamo.Libro</option>
@@ -36,13 +36,13 @@
                         <ValidationMessage For="@(() => devolucion.PrestamoId)" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Fecha de devolución</label>
+                        <label class="form-label fw-semibold">Fecha de devolucion</label>
                         <InputDate class="form-control" @bind-Value="devolucion.FechaDevolucion" />
                         <ValidationMessage For="@(() => devolucion.FechaDevolucion)" />
                     </div>
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <a href="/devoluciones" class="btn btn-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Guardar devolución</button>
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Guardar devolucion</button>
                     </div>
                 </EditForm>
             }
@@ -79,7 +79,7 @@
         var resultado = await Servicio.Guardar(devolucion);
         if (resultado.IsSuccess)
         {
-            toastService.ShowSuccess("Devolución registrada correctamente.");
+            toastService.ShowSuccess("Devolucion registrada correctamente.");
             Navigation.NavigateTo("/devoluciones");
         }
         else
