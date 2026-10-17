@@ -5,6 +5,7 @@
 @using RegistroLibro.Services
 
 @inject EntradasService Servicio
+@inject LibrosService LibrosServicio
 @inject NavigationManager navigationManager
 @inject ToastService toastService
 
@@ -52,6 +53,7 @@
 
 @code {
     private List<Entrada> entradas = new();
+    private List<Libro> libros = new();
     private string filtro = string.Empty;
 
     private IQueryable<Entrada> EntradasFiltradas =>
@@ -68,6 +70,10 @@
 
     private async Task Cargar()
     {
+        var librosResultado = await LibrosServicio.GetList(libro => true);
+        if (librosResultado.IsSuccess)
+            libros = librosResultado.Value;
+
         var resultado = await Servicio.GetList(entrada => true);
 
         if (resultado.IsSuccess)
@@ -83,7 +89,9 @@
     {
         return string.Join(", ", entrada.Detalles.Select(detalle =>
         {
-            var titulo = detalle.Libro?.Titulo ?? $"Libro {detalle.LibroId}";
+            var titulo = libros.FirstOrDefault(libro => libro.LibroId == detalle.LibroId)?.Titulo
+                ?? detalle.Libro?.Titulo
+                ?? $"Libro {detalle.LibroId}";
             return $"{titulo} x {detalle.Cantidad}";
         }));
     }
