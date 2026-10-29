@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
 using RegistroLibro.Services;
 using RegistroLibro.Components;
+using RegistroLibro.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +45,8 @@ app.UseStatusCodePagesWithReExecute(
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 app.MapStaticAssets();
+
+app.MapEstudiantesApi();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
