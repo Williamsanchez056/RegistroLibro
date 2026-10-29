@@ -20,6 +20,33 @@ Aplicacion web desarrollada con C# y Blazor para administrar libros, estudiantes
 
 La propiedad `CantidadDisponible` forma parte del modelo de libro. Su valor se registra, pero el flujo de prestamos y devoluciones todavia no lo modifica automaticamente.
 
+## API de estudiantes
+
+La API utiliza las tablas existentes y el mismo contexto de Entity Framework del proyecto. No necesita crear otra base de datos.
+
+| Metodo | Ruta | Uso |
+| --- | --- | --- |
+| GET | `/api/estudiantes` | Consultar todos los estudiantes |
+| GET | `/api/estudiantes/{id}` | Consultar un estudiante por su ID |
+| POST | `/api/estudiantes` | Registrar un estudiante |
+| PUT | `/api/estudiantes/{id}` | Editar un estudiante |
+| DELETE | `/api/estudiantes/{id}` | Eliminar un estudiante si no tiene prestamos |
+
+Ejemplo de JSON para registrar o editar un estudiante:
+
+```json
+{
+  "nombres": "Juan Perez",
+  "direccion": "San Francisco de Macoris",
+  "email": "juan@example.com",
+  "fechaNacimiento": "2004-05-20"
+}
+```
+
+La API valida los datos requeridos, revisa el formato del correo y evita nombres duplicados. Si el registro no existe responde con `404`; si el nombre ya esta registrado o no se permite eliminar por tener prestamos, responde con `409`. Al crear un estudiante responde con `201` y la direccion del registro creado.
+
+Puedes probar las rutas desde Swagger si se agrega esa herramienta al proyecto, o desde Postman, Thunder Client o la extension REST Client de Visual Studio Code.
+
 ## Manejo de resultados
 
 Los servicios de libros, estudiantes, prestamos y devoluciones implementan `IServiceResult<T, int>` de `Aplicada1.Core`. Las operaciones CRUD devuelven objetos `Result` o `Result<T>`, lo que permite consultar `IsSuccess`, `IsFailure` y `Error.Description` para manejar errores de validacion y de acceso a datos.
@@ -29,6 +56,7 @@ Los servicios de libros, estudiantes, prestamos y devoluciones implementan `ISer
 - C#
 - .NET 10
 - Blazor con renderizado interactivo en servidor
+- Minimal APIs de ASP.NET Core
 - Entity Framework Core 10
 - SQL Server
 - Aplicada1.Core 1.1.0
@@ -54,5 +82,6 @@ La aplicacion aplica las migraciones de Entity Framework Core al iniciar. Usa un
 - `Models`: modelos de libros, estudiantes, prestamos y devoluciones.
 - `Context`: contexto de Entity Framework Core.
 - `Services`: operaciones de datos, resultados y reglas de validacion.
+- `Endpoints`: rutas de la API.
 - `Components/Pages`: pantallas de la aplicacion.
 - `Migrations`: migraciones de la base de datos.
