@@ -88,7 +88,7 @@ La API valida los campos obligatorios, el formato del correo, la fecha de nacimi
    dotnet run
    ```
 
-La aplicacion aplica las migraciones pendientes al iniciar. La configuracion incluida utiliza SQL Server LocalDB para desarrollo local.
+La aplicacion aplica las migraciones pendientes al iniciar. La nueva migracion descuenta del inventario los prestamos que ya estaban pendientes, porque las versiones anteriores no actualizaban las existencias automaticamente. Si habias descontado esos prestamos manualmente, revisa las cantidades despues de actualizar. La configuracion incluida utiliza SQL Server LocalDB para desarrollo local.
 
 ## Estructura
 
