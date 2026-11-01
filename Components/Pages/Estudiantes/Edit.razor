@@ -1,0 +1,112 @@
+@page "/estudiantes/editar/{Id:int}"
+@rendermode InteractiveServer
+@using RegistroLibro.Models
+@using RegistroLibro.Services
+@inject EstudiantesService Servicio
+@inject NavigationManager Navigation
+@inject ToastService toastService
+
+<PageTitle>Editar estudiante</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Editar estudiante</h3>
+        </div>
+        <div class="card-body">
+            @if (cargando)
+            {
+                <p>Cargando estudiante...</p>
+            }
+            else if (estudiante is null)
+            {
+                <div class="alert alert-warning">No se encontro el estudiante solicitado.</div>
+                <a href="/estudiantes" class="btn btn-secondary">Volver</a>
+            }
+            else
+            {
+                <EditForm Model="estudiante" OnValidSubmit="Guardar">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label" for="nombres">Nombres</label>
+                        <InputText id="nombres" class="form-control" @bind-Value="estudiante.Nombres" />
+                        <ValidationMessage For="@(() => estudiante.Nombres)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="direccion">Direccion</label>
+                        <InputText id="direccion" class="form-control" @bind-Value="estudiante.Direccion" />
+                        <ValidationMessage For="@(() => estudiante.Direccion)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="email">Email</label>
+                        <InputText id="email" type="email" class="form-control" @bind-Value="estudiante.Email" />
+                        <ValidationMessage For="@(() => estudiante.Email)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="fechaNacimiento">Fecha de nacimiento</label>
+                        <InputDate id="fechaNacimiento" class="form-control" @bind-Value="estudiante.FechaNacimiento" />
+                        <ValidationMessage For="@(() => estudiante.FechaNacimiento)" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success" disabled="@guardando">
+                            @(guardando ? "Guardando..." : "Guardar cambios")
+                        </button>
+                        <button type="button" class="btn btn-secondary" @onclick="Volver">Cancelar</button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Estudiante? estudiante;
+    private bool cargando = true;
+    private bool guardando;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var resultado = await Servicio.Buscar(Id);
+        if (resultado.IsSuccess)
+            estudiante = resultado.Value;
+        else
+            toastService.ShowError(resultado.Error.Description);
+
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        if (estudiante is null || guardando)
+            return;
+
+        guardando = true;
+        try
+        {
+            var resultado = await Servicio.Guardar(estudiante);
+            if (resultado.IsSuccess)
+            {
+                toastService.ShowSuccess("Estudiante actualizado correctamente.");
+                Navigation.NavigateTo("/estudiantes");
+            }
+            else
+            {
+                toastService.ShowError(resultado.Error.Description);
+            }
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Volver() => Navigation.NavigateTo("/estudiantes");
+}
