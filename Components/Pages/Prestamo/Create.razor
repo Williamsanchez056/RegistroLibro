@@ -2,49 +2,133 @@
 @using RegistroLibro.Models
 @using RegistroLibro.Services
 @inject PrestamosService PrestamoService
+@inject LibrosService LibrosService
+@inject EstudiantesService EstudiantesService
 @inject NavigationManager Navigation
 @inject ToastService toastService
 @rendermode InteractiveServer
 
+<PageTitle>Registrar prestamo</PageTitle>
+
 <div class="container mt-4">
     <div class="card shadow-sm border-0 col-md-8 mx-auto">
-        <div class="card-header bg-primary text-white py-3"><h4 class="mb-0"><i class="bi bi-bookmark-plus-fill me-2"></i>Registrar Nuevo Prestamo</h4></div>
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0"><i class="bi bi-bookmark-plus-fill me-2"></i>Registrar nuevo prestamo</h4>
+        </div>
         <div class="card-body p-4">
-            <EditForm Model="nuevoPrestamo" OnValidSubmit="GuardarPrestamo">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger mb-3" />
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Nombre del Estudiante:</label>
-                    <InputText class="form-control" placeholder="Ej: Williams Rafael" @bind-Value="nuevoPrestamo.Estudiante" />
-                    <ValidationMessage For="@(() => nuevoPrestamo.Estudiante)" />
+            @if (cargando)
+            {
+                <p>Cargando datos...</p>
+            }
+            else if (librosDisponibles.Count == 0 || estudiantes.Count == 0)
+            {
+                <div class="alert alert-warning">
+                    Para registrar un prestamo necesitas al menos un libro con ejemplares disponibles y un estudiante registrado.
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Libro:</label>
-                    <InputText class="form-control" placeholder="Ej: El quijote" @bind-Value="nuevoPrestamo.Libro" />
-                    <ValidationMessage For="@(() => nuevoPrestamo.Libro)" />
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Fecha de Prestamo:</label><InputDate class="form-control" @bind-Value="nuevoPrestamo.FechaPrestamo" /></div>
-                    <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Fecha de Devolucion:</label><InputDate class="form-control" @bind-Value="nuevoPrestamo.FechaDevolucion" /><ValidationMessage For="@(() => nuevoPrestamo.FechaDevolucion)" /></div>
-                </div>
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <a href="/prestamos" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Volver</a>
-                    <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Guardar Prestamo</button>
-                </div>
-            </EditForm>
+                <a href="/Libro/crear" class="btn btn-outline-primary me-2">Registrar libro</a>
+                <a href="/estudiantes/crear" class="btn btn-outline-primary">Registrar estudiante</a>
+            }
+            else
+            {
+                <EditForm Model="nuevoPrestamo" OnValidSubmit="GuardarPrestamo">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger mb-3" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Estudiante</label>
+                        <InputSelect class="form-select" @bind-Value="nuevoPrestamo.Estudiante">
+                            <option value="">Selecciona un estudiante</option>
+                            @foreach (var estudiante in estudiantes)
+                            {
+                                <option value="@estudiante.Nombres">@estudiante.Nombres</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => nuevoPrestamo.Estudiante)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Libro</label>
+                        <InputSelect class="form-select" @bind-Value="nuevoPrestamo.Libro">
+                            <option value="">Selecciona un libro</option>
+                            @foreach (var libro in librosDisponibles)
+                            {
+                                <option value="@libro.Titulo">@libro.Titulo (@libro.CantidadDisponible disponibles)</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => nuevoPrestamo.Libro)" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Fecha de prestamo</label>
+                            <InputDate class="form-control" @bind-Value="nuevoPrestamo.FechaPrestamo" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Fecha limite de devolucion</label>
+                            <InputDate class="form-control" @bind-Value="nuevoPrestamo.FechaDevolucion" />
+                            <ValidationMessage For="@(() => nuevoPrestamo.FechaDevolucion)" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="/prestamos" class="btn btn-secondary">Volver</a>
+                        <button type="submit" class="btn btn-success" disabled="@guardando">
+                            @(guardando ? "Guardando..." : "Guardar prestamo")
+                        </button>
+                    </div>
+                </EditForm>
+            }
         </div>
     </div>
 </div>
 
 @code {
     private Prestamo nuevoPrestamo = new();
+    private List<Libro> librosDisponibles = new();
+    private List<Estudiante> estudiantes = new();
+    private bool cargando = true;
+    private bool guardando;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var librosResultado = await LibrosService.GetList(l => l.CantidadDisponible > 0);
+        var estudiantesResultado = await EstudiantesService.GetList(e => true);
+
+        if (librosResultado.IsSuccess)
+            librosDisponibles = librosResultado.Value;
+        else
+            toastService.ShowError(librosResultado.Error.Description);
+
+        if (estudiantesResultado.IsSuccess)
+            estudiantes = estudiantesResultado.Value;
+        else
+            toastService.ShowError(estudiantesResultado.Error.Description);
+
+        cargando = false;
+    }
 
     private async Task GuardarPrestamo()
     {
-        var resultado = await PrestamoService.Guardar(nuevoPrestamo);
-        if (resultado.IsSuccess)
-            Navigation.NavigateTo("/prestamos");
-        else
-            toastService.ShowError(resultado.Error.Description);
+        if (guardando)
+            return;
+
+        guardando = true;
+        try
+        {
+            var resultado = await PrestamoService.Guardar(nuevoPrestamo);
+            if (resultado.IsSuccess)
+            {
+                toastService.ShowSuccess("Prestamo registrado correctamente. El inventario fue actualizado.");
+                Navigation.NavigateTo("/prestamos");
+            }
+            else
+            {
+                toastService.ShowError(resultado.Error.Description);
+            }
+        }
+        finally
+        {
+            guardando = false;
+        }
     }
 }

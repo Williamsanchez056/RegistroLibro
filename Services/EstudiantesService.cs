@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
 using RegistroLibro.Models;
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 
 namespace RegistroLibro.Services;
@@ -18,8 +19,17 @@ public class EstudiantesService : IServiceResult<Estudiante, int>
 
     public async Task<Result> Guardar(Estudiante estudiante)
     {
-        if (string.IsNullOrWhiteSpace(estudiante.Nombres))
-            return Result.Failure(new Error("VALIDATION", "El nombre del estudiante es obligatorio."));
+        var errores = new List<ValidationResult>();
+        var validacion = new ValidationContext(estudiante);
+
+        if (!Validator.TryValidateObject(estudiante, validacion, errores, validateAllProperties: true))
+        {
+            var mensaje = string.Join(" ", errores.Select(error => error.ErrorMessage));
+            return Result.Failure(new Error("VALIDATION", mensaje));
+        }
+
+        if (estudiante.FechaNacimiento!.Value.Date > DateTime.Today)
+            return Result.Failure(new Error("INVALID_BIRTH_DATE", "La fecha de nacimiento no puede ser futura."));
 
         try
         {
@@ -43,6 +53,15 @@ public class EstudiantesService : IServiceResult<Estudiante, int>
                 var existente = await contexto.Estudiantes.FindAsync(estudiante.EstudianteId);
                 if (existente is null)
                     return Result.Failure(new Error("NOT_FOUND", "No se encontro el estudiante."));
+
+                if (!string.Equals(existente.Nombres, estudiante.Nombres, StringComparison.Ordinal))
+                {
+                    var nombreAnterior = existente.Nombres;
+                    await contexto.Prestamos
+                        .Where(p => p.Estudiante == nombreAnterior)
+                        .ExecuteUpdateAsync(actualizacion =>
+                            actualizacion.SetProperty(p => p.Estudiante, estudiante.Nombres));
+                }
 
                 existente.Nombres = estudiante.Nombres;
                 existente.Direccion = estudiante.Direccion;
@@ -131,6 +150,9 @@ public class EstudiantesService : IServiceResult<Estudiante, int>
 
     public async Task<Result<bool>> ExisteNombre(string nombres, int estudianteId = 0)
     {
+        if (string.IsNullOrWhiteSpace(nombres))
+            return Result.Success(false);
+
         try
         {
             await using var contexto = await _factory.CreateDbContextAsync();
@@ -146,4 +168,42 @@ public class EstudiantesService : IServiceResult<Estudiante, int>
             return Result.Failure<bool>(new Error("DATABASE_ERROR", "No se pudo validar el nombre del estudiante."));
         }
     }
+
+    private async Task<bool> Existe(int estudianteId)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        return await contexto.Estudiantes.AnyAsync(estudiante =>
+            estudiante.EstudianteId == estudianteId);
+    }
+
+    private async Task<bool> Insertar(Estudiante estudiante)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        contexto.Estudiantes.Add(estudiante);
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
+    private async Task<bool> Modificar(Estudiante estudiante)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var existente = await contexto.Estudiantes.FindAsync(estudiante.EstudianteId);
+        if (existente is null)
+            return false;
+
+        if (!string.Equals(existente.Nombres, estudiante.Nombres, StringComparison.Ordinal))
+        {
+            var nombreAnterior = existente.Nombres;
+            await contexto.Prestamos
+                .Where(prestamo => prestamo.Estudiante == nombreAnterior)
+                .ExecuteUpdateAsync(actualizacion =>
+                    actualizacion.SetProperty(prestamo => prestamo.Estudiante, estudiante.Nombres));
+        }
+
+        existente.Nombres = estudiante.Nombres;
+        existente.Direccion = estudiante.Direccion;
+        existente.Email = estudiante.Email;
+        existente.FechaNacimiento = estudiante.FechaNacimiento;
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
 }

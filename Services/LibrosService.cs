@@ -24,34 +24,52 @@ public class LibrosService : IServiceResult<Libro, int>
             return Result.Failure(new Error("VALIDATION", "El titulo y el autor son obligatorios."));
         }
 
-        await using var contexto = await _factory.CreateDbContextAsync();
-
-        libro.Titulo = libro.Titulo.Trim();
-        libro.Autor = libro.Autor.Trim();
-
-        bool repetido = await contexto.Libros.AnyAsync(l =>
-            l.Titulo == libro.Titulo &&
-            l.LibroId != libro.LibroId);
-
-        if (repetido)
-            return Result.Failure(new Error("DUPLICATE_TITLE", "Ya existe un libro con ese titulo."));
-
-        if (libro.LibroId == 0)
-            contexto.Libros.Add(libro);
-        else
+        if (!libro.AnoPublicacion.HasValue ||
+            libro.AnoPublicacion < 1000 ||
+            libro.AnoPublicacion > 2100)
         {
-            var existente = await contexto.Libros.FindAsync(libro.LibroId);
-            if (existente is null)
-                return Result.Failure(new Error("NOT_FOUND", "No se encontro el libro que deseas actualizar."));
-
-            existente.Titulo = libro.Titulo;
-            existente.Autor = libro.Autor;
-            existente.AnoPublicacion = libro.AnoPublicacion;
-            existente.CantidadDisponible = libro.CantidadDisponible;
+            return Result.Failure(new Error("INVALID_YEAR", "Introduce un ano de publicacion valido entre 1000 y 2100."));
         }
+
+        if (libro.CantidadDisponible < 0)
+            return Result.Failure(new Error("INVALID_STOCK", "La cantidad disponible no puede ser negativa."));
 
         try
         {
+            await using var contexto = await _factory.CreateDbContextAsync();
+
+            libro.Titulo = libro.Titulo.Trim();
+            libro.Autor = libro.Autor.Trim();
+
+            bool repetido = await contexto.Libros.AnyAsync(l =>
+                l.Titulo == libro.Titulo &&
+                l.LibroId != libro.LibroId);
+
+            if (repetido)
+                return Result.Failure(new Error("DUPLICATE_TITLE", "Ya existe un libro con ese titulo."));
+
+            if (libro.LibroId == 0)
+                contexto.Libros.Add(libro);
+            else
+            {
+                var existente = await contexto.Libros.FindAsync(libro.LibroId);
+                if (existente is null)
+                    return Result.Failure(new Error("NOT_FOUND", "No se encontro el libro que deseas actualizar."));
+
+                if (!string.Equals(existente.Titulo, libro.Titulo, StringComparison.Ordinal))
+                {
+                    var tituloAnterior = existente.Titulo;
+                    await contexto.Prestamos
+                        .Where(p => p.Libro == tituloAnterior)
+                        .ExecuteUpdateAsync(actualizacion =>
+                            actualizacion.SetProperty(p => p.Libro, libro.Titulo));
+                }
+
+                existente.Titulo = libro.Titulo;
+                existente.Autor = libro.Autor;
+                existente.AnoPublicacion = libro.AnoPublicacion;
+            }
+
             await contexto.SaveChangesAsync();
             return Result.Success();
         }
@@ -61,7 +79,7 @@ public class LibrosService : IServiceResult<Libro, int>
         {
             return Result.Failure(new Error("DUPLICATE_TITLE", "Ya existe un libro con ese titulo."));
         }
-        catch (DbUpdateException)
+        catch
         {
             return Result.Failure(new Error("DATABASE_ERROR", "No se pudo guardar el libro."));
         }
@@ -115,11 +133,17 @@ public class LibrosService : IServiceResult<Libro, int>
             if (libro is null)
                 return Result.Failure(new Error("NOT_FOUND", "No se encontro el libro."));
 
-            var tienePrestamoPendiente = await contexto.Prestamos
-                .AnyAsync(p => p.Libro == libro.Titulo && p.FechaEntrega == null);
+            var tienePrestamos = await contexto.Prestamos
+                .AnyAsync(p => p.Libro == libro.Titulo);
 
-            if (tienePrestamoPendiente)
-                return Result.Failure(new Error("LOAN_PENDING", "No se puede eliminar un libro con prestamos pendientes."));
+            if (tienePrestamos)
+                return Result.Failure(new Error("BOOK_HISTORY_EXISTS", "No se puede eliminar un libro que tiene prestamos registrados."));
+
+            var tieneEntradas = await contexto.EntradasDetalle
+                .AnyAsync(d => d.LibroId == id);
+
+            if (tieneEntradas)
+                return Result.Failure(new Error("BOOK_HISTORY_EXISTS", "No se puede eliminar un libro que tiene entradas de inventario registradas."));
 
             contexto.Libros.Remove(libro);
             await contexto.SaveChangesAsync();
@@ -183,4 +207,51 @@ public class LibrosService : IServiceResult<Libro, int>
                 new Error("DATABASE_ERROR", "No se pudo calcular el promedio de dias prestados."));
         }
     }
+
+    private async Task<bool> Existe(int libroId)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        return await contexto.Libros.AnyAsync(libro => libro.LibroId == libroId);
+    }
+
+    public async Task<bool> ExisteTitulo(string titulo, int libroId = 0)
+    {
+        if (string.IsNullOrWhiteSpace(titulo))
+            return false;
+
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var nombre = titulo.Trim();
+        return await contexto.Libros.AnyAsync(libro =>
+            libro.Titulo == nombre && libro.LibroId != libroId);
+    }
+
+    private async Task<bool> Insertar(Libro libro)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        contexto.Libros.Add(libro);
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
+    private async Task<bool> Modificar(Libro libro)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var existente = await contexto.Libros.FindAsync(libro.LibroId);
+        if (existente is null)
+            return false;
+
+        if (!string.Equals(existente.Titulo, libro.Titulo, StringComparison.Ordinal))
+        {
+            var tituloAnterior = existente.Titulo;
+            await contexto.Prestamos
+                .Where(prestamo => prestamo.Libro == tituloAnterior)
+                .ExecuteUpdateAsync(actualizacion =>
+                    actualizacion.SetProperty(prestamo => prestamo.Libro, libro.Titulo));
+        }
+
+        existente.Titulo = libro.Titulo;
+        existente.Autor = libro.Autor;
+        existente.AnoPublicacion = libro.AnoPublicacion;
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
 }

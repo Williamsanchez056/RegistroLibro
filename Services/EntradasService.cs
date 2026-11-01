@@ -229,4 +229,117 @@ public class EntradasService : IServiceResult<Entrada, int>
                 grupo => grupo.Key,
                 grupo => grupo.Sum(detalle => detalle.Cantidad));
     }
+
+    private async Task<bool> Existe(int entradaId)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        return await contexto.Entradas.AnyAsync(entrada =>
+            entrada.EntradaId == entradaId);
+    }
+
+    private async Task<bool> Insertar(Entrada entrada)
+    {
+        if (entrada.Detalles is null || entrada.Detalles.Count == 0 ||
+            entrada.Detalles.Any(detalle => detalle.Cantidad <= 0))
+            return false;
+
+        await using var contexto = await _factory.CreateDbContextAsync();
+        await using var transaccion = await contexto.Database.BeginTransactionAsync();
+
+        var ids = entrada.Detalles.Select(detalle => detalle.LibroId).Distinct().ToList();
+        var libros = await contexto.Libros
+            .Where(libro => ids.Contains(libro.LibroId))
+            .ToDictionaryAsync(libro => libro.LibroId);
+
+        if (libros.Count != ids.Count)
+            return false;
+
+        foreach (var detalle in entrada.Detalles)
+            libros[detalle.LibroId].CantidadDisponible += detalle.Cantidad;
+
+        entrada.Total = entrada.Detalles.Sum(detalle => detalle.Cantidad);
+        contexto.Entradas.Add(entrada);
+        await contexto.SaveChangesAsync();
+        await transaccion.CommitAsync();
+        return true;
+    }
+
+    private async Task<bool> Modificar(Entrada entrada)
+    {
+        if (entrada.Detalles is null || entrada.Detalles.Count == 0 ||
+            entrada.Detalles.Any(detalle => detalle.Cantidad <= 0))
+            return false;
+
+        await using var contexto = await _factory.CreateDbContextAsync();
+        await using var transaccion = await contexto.Database.BeginTransactionAsync();
+
+        var existente = await contexto.Entradas
+            .Include(item => item.Detalles)
+            .FirstOrDefaultAsync(item => item.EntradaId == entrada.EntradaId);
+
+        if (existente is null)
+            return false;
+
+        var anteriores = ObtenerCantidadesPorLibro(existente.Detalles);
+        var nuevas = ObtenerCantidadesPorLibro(entrada.Detalles);
+        var ids = anteriores.Keys.Union(nuevas.Keys).ToList();
+        var libros = await contexto.Libros
+            .Where(libro => ids.Contains(libro.LibroId))
+            .ToDictionaryAsync(libro => libro.LibroId);
+
+        if (libros.Count != ids.Count)
+            return false;
+
+        foreach (var id in ids)
+        {
+            var cambio = nuevas.GetValueOrDefault(id) - anteriores.GetValueOrDefault(id);
+            if (libros[id].CantidadDisponible + cambio < 0)
+                return false;
+        }
+
+        foreach (var id in ids)
+            libros[id].CantidadDisponible += nuevas.GetValueOrDefault(id) - anteriores.GetValueOrDefault(id);
+
+        existente.Fecha = entrada.Fecha;
+        existente.Total = entrada.Detalles.Sum(detalle => detalle.Cantidad);
+        contexto.EntradasDetalle.RemoveRange(existente.Detalles);
+        existente.Detalles.Clear();
+
+        foreach (var detalle in entrada.Detalles)
+            existente.Detalles.Add(new EntradasDetalle
+            {
+                EntradaId = existente.EntradaId,
+                LibroId = detalle.LibroId,
+                Cantidad = detalle.Cantidad
+            });
+
+        await contexto.SaveChangesAsync();
+        await transaccion.CommitAsync();
+        return true;
+    }
+
+    private async Task AfectarLibros(
+        RegistroContext contexto,
+        EntradasDetalle[] detalles,
+        bool sumar)
+    {
+        foreach (var detalle in detalles)
+        {
+            var libro = await contexto.Libros
+                .FirstOrDefaultAsync(item => item.LibroId == detalle.LibroId);
+
+            if (libro is null)
+                throw new InvalidOperationException("No se encontro un libro de la entrada.");
+
+            var nuevaCantidad = sumar
+                ? libro.CantidadDisponible + detalle.Cantidad
+                : libro.CantidadDisponible - detalle.Cantidad;
+
+            if (nuevaCantidad < 0)
+                throw new InvalidOperationException("La cantidad disponible no puede ser negativa.");
+
+            libro.CantidadDisponible = nuevaCantidad;
+        }
+    }
+
 }
