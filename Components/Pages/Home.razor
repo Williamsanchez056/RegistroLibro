@@ -1,7 +1,63 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Inicio</PageTitle>
 
-<h1>Hola</h1>
+<div class="container mt-4">
+    <div class="p-4 p-md-5 mb-4 bg-light rounded-3">
+        <div class="container-fluid py-2">
+            <h1 class="display-6 fw-bold">Sistema de Registro de Libros</h1>
+            <p class="col-md-9 fs-5">
+                Administra los libros, estudiantes, prestamos, devoluciones y entradas de inventario desde un solo lugar.
+            </p>
+            <a class="btn btn-primary btn-lg" href="/Libro">Consultar libros</a>
+        </div>
+    </div>
 
-Bienvenido a la aplicacion de registro de libros. Esta aplicacion permite registrar, consultar, modificar y eliminar libros.
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-book me-2"></i>Libros</h5>
+                    <p class="card-text">Registra libros y consulta las existencias disponibles.</p>
+                    <a href="/Libro" class="btn btn-outline-primary">Ver libros</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-people me-2"></i>Estudiantes</h5>
+                    <p class="card-text">Administra los datos de los estudiantes registrados.</p>
+                    <a href="/estudiantes" class="btn btn-outline-primary">Ver estudiantes</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-journal-check me-2"></i>Prestamos</h5>
+                    <p class="card-text">Registra prestamos y controla las devoluciones pendientes.</p>
+                    <a href="/prestamos" class="btn btn-outline-primary">Ver prestamos</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-box-seam me-2"></i>Entradas</h5>
+                    <p class="card-text">Agrega ejemplares al inventario y consulta sus movimientos.</p>
+                    <a href="/Entradas" class="btn btn-outline-primary">Ver entradas</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-arrow-return-left me-2"></i>Devoluciones</h5>
+                    <p class="card-text">Consulta y administra las devoluciones registradas.</p>
+                    <a href="/devoluciones" class="btn btn-outline-primary">Ver devoluciones</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
