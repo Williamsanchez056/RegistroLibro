@@ -38,10 +38,10 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Cantidad Disponible</label>
-                        <InputNumber class="form-control" @bind-Value="libro.CantidadDisponible" />
-                        <ValidationMessage For="@(() => libro.CantidadDisponible)" />
+                        <input class="form-control" value="@libro.CantidadDisponible" disabled />
+                        <div class="form-text">La cantidad se modifica desde las entradas, los prestamos y las devoluciones para conservar el inventario.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
                     <button type="button" class="btn btn-danger ms-2" @onclick="Eliminar">Eliminar</button>
                     <button type="button" class="btn btn-secondary ms-2" @onclick="Volver">Cancelar</button>
                 </EditForm>
