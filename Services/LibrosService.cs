@@ -24,34 +24,44 @@ public class LibrosService : IServiceResult<Libro, int>
             return Result.Failure(new Error("VALIDATION", "El titulo y el autor son obligatorios."));
         }
 
-        await using var contexto = await _factory.CreateDbContextAsync();
-
-        libro.Titulo = libro.Titulo.Trim();
-        libro.Autor = libro.Autor.Trim();
-
-        bool repetido = await contexto.Libros.AnyAsync(l =>
-            l.Titulo == libro.Titulo &&
-            l.LibroId != libro.LibroId);
-
-        if (repetido)
-            return Result.Failure(new Error("DUPLICATE_TITLE", "Ya existe un libro con ese titulo."));
-
-        if (libro.LibroId == 0)
-            contexto.Libros.Add(libro);
-        else
+        if (!libro.AnoPublicacion.HasValue ||
+            libro.AnoPublicacion < 1000 ||
+            libro.AnoPublicacion > 2100)
         {
-            var existente = await contexto.Libros.FindAsync(libro.LibroId);
-            if (existente is null)
-                return Result.Failure(new Error("NOT_FOUND", "No se encontro el libro que deseas actualizar."));
-
-            existente.Titulo = libro.Titulo;
-            existente.Autor = libro.Autor;
-            existente.AnoPublicacion = libro.AnoPublicacion;
-            existente.CantidadDisponible = libro.CantidadDisponible;
+            return Result.Failure(new Error("INVALID_YEAR", "Introduce un ano de publicacion valido entre 1000 y 2100."));
         }
+
+        if (libro.CantidadDisponible < 0)
+            return Result.Failure(new Error("INVALID_STOCK", "La cantidad disponible no puede ser negativa."));
 
         try
         {
+            await using var contexto = await _factory.CreateDbContextAsync();
+
+            libro.Titulo = libro.Titulo.Trim();
+            libro.Autor = libro.Autor.Trim();
+
+            bool repetido = await contexto.Libros.AnyAsync(l =>
+                l.Titulo == libro.Titulo &&
+                l.LibroId != libro.LibroId);
+
+            if (repetido)
+                return Result.Failure(new Error("DUPLICATE_TITLE", "Ya existe un libro con ese titulo."));
+
+            if (libro.LibroId == 0)
+                contexto.Libros.Add(libro);
+            else
+            {
+                var existente = await contexto.Libros.FindAsync(libro.LibroId);
+                if (existente is null)
+                    return Result.Failure(new Error("NOT_FOUND", "No se encontro el libro que deseas actualizar."));
+
+                existente.Titulo = libro.Titulo;
+                existente.Autor = libro.Autor;
+                existente.AnoPublicacion = libro.AnoPublicacion;
+                existente.CantidadDisponible = libro.CantidadDisponible;
+            }
+
             await contexto.SaveChangesAsync();
             return Result.Success();
         }
@@ -61,7 +71,7 @@ public class LibrosService : IServiceResult<Libro, int>
         {
             return Result.Failure(new Error("DUPLICATE_TITLE", "Ya existe un libro con ese titulo."));
         }
-        catch (DbUpdateException)
+        catch
         {
             return Result.Failure(new Error("DATABASE_ERROR", "No se pudo guardar el libro."));
         }
@@ -120,6 +130,12 @@ public class LibrosService : IServiceResult<Libro, int>
 
             if (tienePrestamoPendiente)
                 return Result.Failure(new Error("LOAN_PENDING", "No se puede eliminar un libro con prestamos pendientes."));
+
+            var tieneEntradas = await contexto.EntradasDetalle
+                .AnyAsync(d => d.LibroId == id);
+
+            if (tieneEntradas)
+                return Result.Failure(new Error("BOOK_HISTORY_EXISTS", "No se puede eliminar un libro que tiene entradas de inventario registradas."));
 
             contexto.Libros.Remove(libro);
             await contexto.SaveChangesAsync();
