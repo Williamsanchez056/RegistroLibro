@@ -207,4 +207,51 @@ public class LibrosService : IServiceResult<Libro, int>
                 new Error("DATABASE_ERROR", "No se pudo calcular el promedio de dias prestados."));
         }
     }
+
+    private async Task<bool> Existe(int libroId)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        return await contexto.Libros.AnyAsync(libro => libro.LibroId == libroId);
+    }
+
+    public async Task<bool> ExisteTitulo(string titulo, int libroId = 0)
+    {
+        if (string.IsNullOrWhiteSpace(titulo))
+            return false;
+
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var nombre = titulo.Trim();
+        return await contexto.Libros.AnyAsync(libro =>
+            libro.Titulo == nombre && libro.LibroId != libroId);
+    }
+
+    private async Task<bool> Insertar(Libro libro)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        contexto.Libros.Add(libro);
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
+    private async Task<bool> Modificar(Libro libro)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var existente = await contexto.Libros.FindAsync(libro.LibroId);
+        if (existente is null)
+            return false;
+
+        if (!string.Equals(existente.Titulo, libro.Titulo, StringComparison.Ordinal))
+        {
+            var tituloAnterior = existente.Titulo;
+            await contexto.Prestamos
+                .Where(prestamo => prestamo.Libro == tituloAnterior)
+                .ExecuteUpdateAsync(actualizacion =>
+                    actualizacion.SetProperty(prestamo => prestamo.Libro, libro.Titulo));
+        }
+
+        existente.Titulo = libro.Titulo;
+        existente.Autor = libro.Autor;
+        existente.AnoPublicacion = libro.AnoPublicacion;
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
 }
