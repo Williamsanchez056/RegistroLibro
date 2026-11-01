@@ -18,33 +18,90 @@ public class PrestamosService : IServiceResult<Prestamo, int>
     public async Task<Result> Guardar(Prestamo prestamo)
     {
         if (string.IsNullOrWhiteSpace(prestamo.Libro) ||
-            string.IsNullOrWhiteSpace(prestamo.Estudiante) ||
-            prestamo.FechaDevolucion.Date < prestamo.FechaPrestamo.Date)
+            string.IsNullOrWhiteSpace(prestamo.Estudiante))
         {
-            return Result.Failure(new Error("VALIDATION", "El libro, el estudiante y un rango de fechas valido son obligatorios."));
+            return Result.Failure(new Error("VALIDATION", "Debes seleccionar un libro y un estudiante."));
         }
 
-        prestamo.Libro = prestamo.Libro.Trim();
-        prestamo.Estudiante = prestamo.Estudiante.Trim();
+        if (prestamo.FechaDevolucion.Date < prestamo.FechaPrestamo.Date)
+            return Result.Failure(new Error("INVALID_DATE", "La fecha limite no puede ser anterior a la fecha del prestamo."));
 
         try
         {
             await using var contexto = await _factory.CreateDbContextAsync();
 
-            if (prestamo.PrestamoId == 0)
+            var titulo = prestamo.Libro.Trim();
+            var nombreEstudiante = prestamo.Estudiante.Trim();
+
+            var libro = await contexto.Libros
+                .FirstOrDefaultAsync(l => l.Titulo == titulo);
+
+            if (libro is null)
+                return Result.Failure(new Error("BOOK_NOT_FOUND", "El libro seleccionado no existe."));
+
+            var estudiante = await contexto.Estudiantes
+                .FirstOrDefaultAsync(e => e.Nombres == nombreEstudiante);
+
+            if (estudiante is null)
+                return Result.Failure(new Error("STUDENT_NOT_FOUND", "El estudiante seleccionado no existe."));
+
+            Prestamo? existente = null;
+            Libro? libroAnterior = null;
+
+            if (prestamo.PrestamoId > 0)
             {
-                contexto.Prestamos.Add(prestamo);
-            }
-            else
-            {
-                var existente = await contexto.Prestamos
+                existente = await contexto.Prestamos
                     .FirstOrDefaultAsync(p => p.PrestamoId == prestamo.PrestamoId);
 
                 if (existente is null)
                     return Result.Failure(new Error("NOT_FOUND", "No se encontro el prestamo."));
 
-                existente.Libro = prestamo.Libro;
-                existente.Estudiante = prestamo.Estudiante;
+                if (existente.FechaEntrega.HasValue)
+                    return Result.Failure(new Error("RETURNED_LOAN", "No se puede modificar un prestamo que ya fue devuelto."));
+
+                libroAnterior = await contexto.Libros
+                    .FirstOrDefaultAsync(l => l.Titulo == existente.Libro);
+
+                if (libroAnterior is null)
+                    return Result.Failure(new Error("BOOK_NOT_FOUND", "No se encontro el libro asociado al prestamo actual."));
+            }
+
+            bool otroPrestamoActivo = await contexto.Prestamos.AnyAsync(p =>
+                p.Estudiante == estudiante.Nombres &&
+                p.FechaEntrega == null &&
+                p.PrestamoId != prestamo.PrestamoId);
+
+            if (otroPrestamoActivo)
+                return Result.Failure(new Error("ACTIVE_LOAN_EXISTS", "Este estudiante ya tiene un prestamo pendiente."));
+
+            bool cambiaLibro = libroAnterior is not null && libroAnterior.LibroId != libro.LibroId;
+
+            if (libroAnterior is null || cambiaLibro)
+            {
+                if (libro.CantidadDisponible <= 0)
+                    return Result.Failure(new Error("OUT_OF_STOCK", "No hay ejemplares disponibles de este libro."));
+
+                libro.CantidadDisponible--;
+
+                if (cambiaLibro)
+                    libroAnterior!.CantidadDisponible++;
+            }
+
+            if (existente is null)
+            {
+                contexto.Prestamos.Add(new Prestamo
+                {
+                    Libro = libro.Titulo,
+                    Estudiante = estudiante.Nombres,
+                    FechaPrestamo = prestamo.FechaPrestamo,
+                    FechaDevolucion = prestamo.FechaDevolucion,
+                    Observaciones = prestamo.Observaciones
+                });
+            }
+            else
+            {
+                existente.Libro = libro.Titulo;
+                existente.Estudiante = estudiante.Nombres;
                 existente.FechaPrestamo = prestamo.FechaPrestamo;
                 existente.FechaDevolucion = prestamo.FechaDevolucion;
                 existente.Observaciones = prestamo.Observaciones;
@@ -108,10 +165,18 @@ public class PrestamosService : IServiceResult<Prestamo, int>
                 return Result.Failure(new Error("NOT_FOUND", "No se encontro el prestamo."));
 
             var tieneDevolucion = await contexto.Devoluciones.AnyAsync(d => d.PrestamoId == id);
-            if (tieneDevolucion)
-                return Result.Failure(new Error("RETURN_EXISTS", "No se puede eliminar un prestamo que tiene una devolucion registrada."));
+            if (tieneDevolucion || prestamo.FechaEntrega.HasValue)
+                return Result.Failure(new Error("RETURN_EXISTS", "No se puede eliminar un prestamo que ya fue devuelto."));
 
+            var libro = await contexto.Libros
+                .FirstOrDefaultAsync(l => l.Titulo == prestamo.Libro);
+
+            if (libro is null)
+                return Result.Failure(new Error("BOOK_NOT_FOUND", "No se encontro el libro asociado al prestamo."));
+
+            libro.CantidadDisponible++;
             contexto.Prestamos.Remove(prestamo);
+
             await contexto.SaveChangesAsync();
             return Result.Success();
         }
