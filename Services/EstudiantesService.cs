@@ -168,4 +168,42 @@ public class EstudiantesService : IServiceResult<Estudiante, int>
             return Result.Failure<bool>(new Error("DATABASE_ERROR", "No se pudo validar el nombre del estudiante."));
         }
     }
+
+    private async Task<bool> Existe(int estudianteId)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        return await contexto.Estudiantes.AnyAsync(estudiante =>
+            estudiante.EstudianteId == estudianteId);
+    }
+
+    private async Task<bool> Insertar(Estudiante estudiante)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        contexto.Estudiantes.Add(estudiante);
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
+    private async Task<bool> Modificar(Estudiante estudiante)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var existente = await contexto.Estudiantes.FindAsync(estudiante.EstudianteId);
+        if (existente is null)
+            return false;
+
+        if (!string.Equals(existente.Nombres, estudiante.Nombres, StringComparison.Ordinal))
+        {
+            var nombreAnterior = existente.Nombres;
+            await contexto.Prestamos
+                .Where(prestamo => prestamo.Estudiante == nombreAnterior)
+                .ExecuteUpdateAsync(actualizacion =>
+                    actualizacion.SetProperty(prestamo => prestamo.Estudiante, estudiante.Nombres));
+        }
+
+        existente.Nombres = estudiante.Nombres;
+        existente.Direccion = estudiante.Direccion;
+        existente.Email = estudiante.Email;
+        existente.FechaNacimiento = estudiante.FechaNacimiento;
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
 }
