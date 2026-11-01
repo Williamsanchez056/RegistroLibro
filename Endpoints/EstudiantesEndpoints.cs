@@ -90,6 +90,15 @@ public static class EstudiantesEndpoints
             if (repetido)
                 return Results.Conflict(new { mensaje = "Ya existe otro estudiante con ese nombre." });
 
+            if (!string.Equals(estudiante.Nombres, datos.Nombres, StringComparison.Ordinal))
+            {
+                var nombreAnterior = estudiante.Nombres;
+                await db.Prestamos
+                    .Where(p => p.Estudiante == nombreAnterior)
+                    .ExecuteUpdateAsync(actualizacion =>
+                        actualizacion.SetProperty(p => p.Estudiante, datos.Nombres));
+            }
+
             estudiante.Nombres = datos.Nombres;
             estudiante.Direccion = datos.Direccion;
             estudiante.Email = datos.Email;
