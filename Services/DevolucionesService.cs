@@ -158,4 +158,77 @@ public class DevolucionesService : IServiceResult<Devolucion, int>
             return Result.Failure(new Error("DATABASE_ERROR", "No se pudo eliminar la devolucion."));
         }
     }
+
+    private async Task<bool> Existe(int devolucionId)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        return await contexto.Devoluciones.AnyAsync(devolucion =>
+            devolucion.DevolucionId == devolucionId);
+    }
+
+    private async Task<bool> Insertar(Devolucion devolucion)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var prestamo = await contexto.Prestamos
+            .FirstOrDefaultAsync(item => item.PrestamoId == devolucion.PrestamoId);
+
+        if (prestamo is null || prestamo.FechaEntrega.HasValue)
+            return false;
+
+        var libro = await contexto.Libros
+            .FirstOrDefaultAsync(item => item.Titulo == prestamo.Libro);
+
+        if (libro is null)
+            return false;
+
+        prestamo.FechaEntrega = devolucion.FechaDevolucion;
+        libro.CantidadDisponible++;
+        contexto.Devoluciones.Add(devolucion);
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
+    private async Task<bool> Modificar(Devolucion devolucion)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var existente = await contexto.Devoluciones
+            .FirstOrDefaultAsync(item => item.DevolucionId == devolucion.DevolucionId);
+
+        if (existente is null || existente.PrestamoId != devolucion.PrestamoId)
+            return false;
+
+        existente.FechaDevolucion = devolucion.FechaDevolucion;
+        var prestamo = await contexto.Prestamos
+            .FirstOrDefaultAsync(item => item.PrestamoId == existente.PrestamoId);
+
+        if (prestamo is null)
+            return false;
+
+        prestamo.FechaEntrega = devolucion.FechaDevolucion;
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
+    private async Task<bool> AfectarPrestamo(RegistroContext contexto, int prestamoId, bool devuelto)
+    {
+        var prestamo = await contexto.Prestamos
+            .FirstOrDefaultAsync(item => item.PrestamoId == prestamoId);
+
+        if (prestamo is null)
+            return false;
+
+        if (devuelto)
+        {
+            if (prestamo.FechaEntrega.HasValue)
+                return false;
+            prestamo.FechaEntrega = DateTime.Today;
+        }
+        else
+        {
+            if (!prestamo.FechaEntrega.HasValue)
+                return false;
+            prestamo.FechaEntrega = null;
+        }
+
+        return true;
+    }
+
 }
