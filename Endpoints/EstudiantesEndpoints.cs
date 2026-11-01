@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
 using RegistroLibro.Models;
@@ -54,7 +55,15 @@ public static class EstudiantesEndpoints
                 return Results.Conflict(new { mensaje = "Ya existe un estudiante con ese nombre." });
 
             db.Estudiantes.Add(estudiante);
-            await db.SaveChangesAsync();
+
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (EsDuplicado(ex))
+            {
+                return Results.Conflict(new { mensaje = "Ya existe un estudiante con ese nombre." });
+            }
 
             return Results.Created($"/api/estudiantes/{estudiante.EstudianteId}", estudiante);
         });
@@ -86,7 +95,14 @@ public static class EstudiantesEndpoints
             estudiante.Email = datos.Email;
             estudiante.FechaNacimiento = datos.FechaNacimiento;
 
-            await db.SaveChangesAsync();
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (EsDuplicado(ex))
+            {
+                return Results.Conflict(new { mensaje = "Ya existe otro estudiante con ese nombre." });
+            }
 
             return Results.Ok(estudiante);
         });
@@ -118,6 +134,14 @@ public static class EstudiantesEndpoints
         var contexto = new ValidationContext(estudiante);
         Validator.TryValidateObject(estudiante, contexto, resultados, validateAllProperties: true);
 
+        if (estudiante.FechaNacimiento.HasValue &&
+            estudiante.FechaNacimiento.Value.Date > DateTime.Today)
+        {
+            resultados.Add(new ValidationResult(
+                "La fecha de nacimiento no puede ser futura.",
+                new[] { nameof(estudiante.FechaNacimiento) }));
+        }
+
         return resultados
             .SelectMany(error => error.MemberNames.Select(nombre => new
             {
@@ -126,5 +150,11 @@ public static class EstudiantesEndpoints
             }))
             .GroupBy(error => error.Nombre)
             .ToDictionary(grupo => grupo.Key, grupo => grupo.Select(error => error.Mensaje).ToArray());
+    }
+
+    private static bool EsDuplicado(DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException sql &&
+            (sql.Number == 2601 || sql.Number == 2627);
     }
 }
