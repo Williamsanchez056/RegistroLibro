@@ -125,11 +125,11 @@ public class LibrosService : IServiceResult<Libro, int>
             if (libro is null)
                 return Result.Failure(new Error("NOT_FOUND", "No se encontro el libro."));
 
-            var tienePrestamoPendiente = await contexto.Prestamos
-                .AnyAsync(p => p.Libro == libro.Titulo && p.FechaEntrega == null);
+            var tienePrestamos = await contexto.Prestamos
+                .AnyAsync(p => p.Libro == libro.Titulo);
 
-            if (tienePrestamoPendiente)
-                return Result.Failure(new Error("LOAN_PENDING", "No se puede eliminar un libro con prestamos pendientes."));
+            if (tienePrestamos)
+                return Result.Failure(new Error("BOOK_HISTORY_EXISTS", "No se puede eliminar un libro que tiene prestamos registrados."));
 
             var tieneEntradas = await contexto.EntradasDetalle
                 .AnyAsync(d => d.LibroId == id);
