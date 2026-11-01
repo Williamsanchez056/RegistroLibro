@@ -185,4 +185,34 @@ public class PrestamosService : IServiceResult<Prestamo, int>
             return Result.Failure(new Error("DATABASE_ERROR", "No se pudo eliminar el prestamo."));
         }
     }
+
+    private async Task<bool> Existe(int prestamoId)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        return await contexto.Prestamos.AnyAsync(prestamo =>
+            prestamo.PrestamoId == prestamoId);
+    }
+
+    private async Task<bool> Insertar(Prestamo prestamo)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        contexto.Prestamos.Add(prestamo);
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
+    private async Task<bool> Modificar(Prestamo prestamo)
+    {
+        await using var contexto = await _factory.CreateDbContextAsync();
+        var existente = await contexto.Prestamos.FindAsync(prestamo.PrestamoId);
+        if (existente is null)
+            return false;
+
+        existente.Libro = prestamo.Libro;
+        existente.Estudiante = prestamo.Estudiante;
+        existente.FechaPrestamo = prestamo.FechaPrestamo;
+        existente.FechaDevolucion = prestamo.FechaDevolucion;
+        existente.Observaciones = prestamo.Observaciones;
+        return await contexto.SaveChangesAsync() > 0;
+    }
+
 }
