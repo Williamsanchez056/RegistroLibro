@@ -21,21 +21,35 @@ public class DevolucionesService : IServiceResult<Devolucion, int>
         {
             await using var contexto = await _factory.CreateDbContextAsync();
 
+            var prestamo = await contexto.Prestamos
+                .FirstOrDefaultAsync(p => p.PrestamoId == devolucion.PrestamoId);
+
+            if (prestamo is null)
+                return Result.Failure(new Error("LOAN_NOT_FOUND", "No se encontro el prestamo."));
+
+            if (devolucion.FechaDevolucion.Date < prestamo.FechaPrestamo.Date)
+                return Result.Failure(new Error("INVALID_DATE", "La fecha de devolucion no puede ser anterior al prestamo."));
+
+            var libro = await contexto.Libros
+                .FirstOrDefaultAsync(l => l.Titulo == prestamo.Libro);
+
+            if (libro is null)
+                return Result.Failure(new Error("BOOK_NOT_FOUND", "No se encontro el libro asociado al prestamo."));
+
             if (devolucion.DevolucionId == 0)
             {
-                var prestamo = await contexto.Prestamos
-                    .FirstOrDefaultAsync(p => p.PrestamoId == devolucion.PrestamoId);
-
-                if (prestamo is null)
-                    return Result.Failure(new Error("LOAN_NOT_FOUND", "No se encontro el prestamo."));
-
                 if (prestamo.FechaEntrega.HasValue)
                     return Result.Failure(new Error("ALREADY_RETURNED", "Este prestamo ya fue devuelto."));
 
-                if (devolucion.FechaDevolucion.Date < prestamo.FechaPrestamo.Date)
-                    return Result.Failure(new Error("INVALID_DATE", "La fecha de devolucion no puede ser anterior al prestamo."));
+                bool yaExisteDevolucion = await contexto.Devoluciones
+                    .AnyAsync(d => d.PrestamoId == devolucion.PrestamoId);
+
+                if (yaExisteDevolucion)
+                    return Result.Failure(new Error("ALREADY_RETURNED", "Este prestamo ya tiene una devolucion registrada."));
 
                 prestamo.FechaEntrega = devolucion.FechaDevolucion;
+                libro.CantidadDisponible++;
+
                 contexto.Devoluciones.Add(new Devolucion
                 {
                     PrestamoId = devolucion.PrestamoId,
@@ -50,15 +64,8 @@ public class DevolucionesService : IServiceResult<Devolucion, int>
                 if (existente is null)
                     return Result.Failure(new Error("NOT_FOUND", "No se encontro la devolucion."));
 
-                var prestamo = await contexto.Prestamos
-                    .FirstOrDefaultAsync(p => p.PrestamoId == existente.PrestamoId);
-
-                if (prestamo is null ||
-                    devolucion.PrestamoId != existente.PrestamoId ||
-                    devolucion.FechaDevolucion.Date < prestamo.FechaPrestamo.Date)
-                {
-                    return Result.Failure(new Error("INVALID_RETURN", "Los datos de la devolucion no son validos."));
-                }
+                if (existente.PrestamoId != devolucion.PrestamoId)
+                    return Result.Failure(new Error("INVALID_RETURN", "No se puede cambiar el prestamo asociado a una devolucion."));
 
                 existente.FechaDevolucion = devolucion.FechaDevolucion;
                 prestamo.FechaEntrega = devolucion.FechaDevolucion;
@@ -130,10 +137,20 @@ public class DevolucionesService : IServiceResult<Devolucion, int>
             if (prestamo is null)
                 return Result.Failure(new Error("LOAN_NOT_FOUND", "No se encontro el prestamo asociado."));
 
+            var libro = await contexto.Libros
+                .FirstOrDefaultAsync(l => l.Titulo == prestamo.Libro);
+
+            if (libro is null)
+                return Result.Failure(new Error("BOOK_NOT_FOUND", "No se encontro el libro asociado al prestamo."));
+
+            if (libro.CantidadDisponible <= 0)
+                return Result.Failure(new Error("OUT_OF_STOCK", "No se puede anular la devolucion porque no hay ejemplares disponibles para volver a descontar."));
+
+            libro.CantidadDisponible--;
             prestamo.FechaEntrega = null;
             contexto.Devoluciones.Remove(devolucion);
-            await contexto.SaveChangesAsync();
 
+            await contexto.SaveChangesAsync();
             return Result.Success();
         }
         catch
