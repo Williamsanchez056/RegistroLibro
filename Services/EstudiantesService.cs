@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RegistroLibro.Context;
 using RegistroLibro.Models;
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 
 namespace RegistroLibro.Services;
@@ -18,8 +19,17 @@ public class EstudiantesService : IServiceResult<Estudiante, int>
 
     public async Task<Result> Guardar(Estudiante estudiante)
     {
-        if (string.IsNullOrWhiteSpace(estudiante.Nombres))
-            return Result.Failure(new Error("VALIDATION", "El nombre del estudiante es obligatorio."));
+        var errores = new List<ValidationResult>();
+        var validacion = new ValidationContext(estudiante);
+
+        if (!Validator.TryValidateObject(estudiante, validacion, errores, validateAllProperties: true))
+        {
+            var mensaje = string.Join(" ", errores.Select(error => error.ErrorMessage));
+            return Result.Failure(new Error("VALIDATION", mensaje));
+        }
+
+        if (estudiante.FechaNacimiento!.Value.Date > DateTime.Today)
+            return Result.Failure(new Error("INVALID_BIRTH_DATE", "La fecha de nacimiento no puede ser futura."));
 
         try
         {
@@ -131,6 +141,9 @@ public class EstudiantesService : IServiceResult<Estudiante, int>
 
     public async Task<Result<bool>> ExisteNombre(string nombres, int estudianteId = 0)
     {
+        if (string.IsNullOrWhiteSpace(nombres))
+            return Result.Success(false);
+
         try
         {
             await using var contexto = await _factory.CreateDbContextAsync();
