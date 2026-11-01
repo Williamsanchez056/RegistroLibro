@@ -1,38 +1,44 @@
 # Registro de Libros
 
-**Nombre:** Williams Rafael Sanchez Acosta  
+**Estudiante:** Williams Rafael Sanchez Acosta  
 **Matricula:** 2023-0136  
 **Asignatura:** Programacion Aplicada 1  
 **Universidad:** Universidad Catolica Nordestana (UCNE)
 
-## Sobre el proyecto
+## Descripcion
 
-Aplicacion web desarrollada con C# y Blazor para administrar libros, estudiantes, prestamos y devoluciones. El proyecto utiliza Entity Framework Core para trabajar con SQL Server.
+Aplicacion web desarrollada con C# y Blazor para administrar un catalogo de libros, estudiantes, prestamos, devoluciones y entradas de inventario. Utiliza Entity Framework Core y SQL Server.
 
 ## Funciones principales
 
-- Registrar, consultar, editar y eliminar libros.
-- Registrar y consultar estudiantes.
-- Crear prestamos y consultar su estado.
-- Registrar la devolucion de un prestamo sin borrar el historial del prestamo.
-- Consultar el promedio de dias que los libros devueltos estuvieron prestados.
+- Registrar, consultar, editar y eliminar libros, respetando el historial de movimientos.
+- Registrar, consultar, editar y eliminar estudiantes.
+- Registrar prestamos seleccionando estudiantes y libros existentes.
+- Evitar que un estudiante tenga mas de un prestamo pendiente.
+- Verificar que existan ejemplares disponibles antes de registrar un prestamo.
+- Descontar automaticamente un ejemplar al registrar un prestamo.
+- Aumentar el inventario al registrar una devolucion.
+- Mantener el historial de prestamos y devoluciones.
+- Registrar entradas de inventario con varios libros y cantidades.
+- Actualizar las existencias al crear, editar o eliminar una entrada.
 - Buscar registros desde las pantallas de consulta.
+- Consultar el promedio de dias que los libros devueltos estuvieron prestados.
 
-La propiedad `CantidadDisponible` forma parte del modelo de libro. Su valor se registra, pero el flujo de prestamos y devoluciones todavia no lo modifica automaticamente.
+La cantidad disponible se administra desde las entradas, prestamos y devoluciones. No se modifica manualmente desde el formulario de edicion del libro.
 
-## API de estudiantes
+## API REST de estudiantes
 
-La API utiliza las tablas existentes y el mismo contexto de Entity Framework del proyecto. No necesita crear otra base de datos.
+La API utiliza las mismas tablas y el mismo contexto de Entity Framework de la aplicacion.
 
-| Metodo | Ruta | Uso |
+| Metodo | Ruta | Descripcion |
 | --- | --- | --- |
 | GET | `/api/estudiantes` | Consultar todos los estudiantes |
-| GET | `/api/estudiantes/{id}` | Consultar un estudiante por su ID |
+| GET | `/api/estudiantes/{id}` | Consultar un estudiante |
 | POST | `/api/estudiantes` | Registrar un estudiante |
-| PUT | `/api/estudiantes/{id}` | Editar un estudiante |
+| PUT | `/api/estudiantes/{id}` | Actualizar un estudiante |
 | DELETE | `/api/estudiantes/{id}` | Eliminar un estudiante si no tiene prestamos |
 
-Ejemplo de JSON para registrar o editar un estudiante:
+Ejemplo de JSON para registrar o actualizar un estudiante:
 
 ```json
 {
@@ -43,13 +49,7 @@ Ejemplo de JSON para registrar o editar un estudiante:
 }
 ```
 
-La API valida los datos requeridos, revisa el formato del correo y evita nombres duplicados. Si el registro no existe responde con `404`; si el nombre ya esta registrado o no se permite eliminar por tener prestamos, responde con `409`. Al crear un estudiante responde con `201` y la direccion del registro creado.
-
-Puedes probar las rutas desde Swagger si se agrega esa herramienta al proyecto, o desde Postman, Thunder Client o la extension REST Client de Visual Studio Code.
-
-## Manejo de resultados
-
-Los servicios de libros, estudiantes, prestamos y devoluciones implementan `IServiceResult<T, int>` de `Aplicada1.Core`. Las operaciones CRUD devuelven objetos `Result` o `Result<T>`, lo que permite consultar `IsSuccess`, `IsFailure` y `Error.Description` para manejar errores de validacion y de acceso a datos.
+La API valida los campos obligatorios, el formato del correo, la fecha de nacimiento y los nombres duplicados. Responde con `201 Created` al registrar, `404 Not Found` si el estudiante no existe y `409 Conflict` cuando el nombre ya esta registrado o no se permite eliminar el estudiante.
 
 ## Tecnologias
 
@@ -59,14 +59,27 @@ Los servicios de libros, estudiantes, prestamos y devoluciones implementan `ISer
 - Minimal APIs de ASP.NET Core
 - Entity Framework Core 10
 - SQL Server
-- Aplicada1.Core 1.1.0
-- Bootstrap y QuickGrid
+- Aplicada1.Core
+- Blazored.Toast
+- QuickGrid
+- Bootstrap
+
+## Requisitos
+
+- .NET 10 SDK
+- SQL Server LocalDB o una instancia de SQL Server compatible
+- Visual Studio 2026 o una terminal con soporte para .NET
 
 ## Ejecutar el proyecto
 
-1. Abre la solucion `RegistroLibro.slnx` con Visual Studio o abre una terminal en la carpeta del proyecto.
-2. Verifica que SQL Server LocalDB este instalado y disponible.
-3. Revisa la cadena `ConStr` en `appsettings.json` para confirmar que apunta a la instancia de base de datos de tu equipo.
+1. Clona el repositorio:
+
+   ```bash
+   git clone https://github.com/Williamsanchez056/RegistroLibro.git
+   ```
+
+2. Abre la carpeta del proyecto.
+3. Revisa la cadena `ConStr` en `appsettings.json` para confirmar que apunta a tu instancia de SQL Server.
 4. Ejecuta:
 
    ```powershell
@@ -75,13 +88,13 @@ Los servicios de libros, estudiantes, prestamos y devoluciones implementan `ISer
    dotnet run
    ```
 
-La aplicacion aplica las migraciones de Entity Framework Core al iniciar. Usa una base de datos local de desarrollo y no guardes archivos de base de datos locales en el repositorio.
+La aplicacion aplica las migraciones pendientes al iniciar. La configuracion incluida utiliza SQL Server LocalDB para desarrollo local.
 
 ## Estructura
 
-- `Models`: modelos de libros, estudiantes, prestamos y devoluciones.
+- `Models`: modelos de libros, estudiantes, prestamos, devoluciones y entradas.
 - `Context`: contexto de Entity Framework Core.
-- `Services`: operaciones de datos, resultados y reglas de validacion.
-- `Endpoints`: rutas de la API.
+- `Services`: operaciones de datos, reglas de negocio y validaciones.
+- `Endpoints`: rutas de la API REST.
 - `Components/Pages`: pantallas de la aplicacion.
 - `Migrations`: migraciones de la base de datos.
