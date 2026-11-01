@@ -56,10 +56,18 @@ public class LibrosService : IServiceResult<Libro, int>
                 if (existente is null)
                     return Result.Failure(new Error("NOT_FOUND", "No se encontro el libro que deseas actualizar."));
 
+                if (!string.Equals(existente.Titulo, libro.Titulo, StringComparison.Ordinal))
+                {
+                    var tituloAnterior = existente.Titulo;
+                    await contexto.Prestamos
+                        .Where(p => p.Libro == tituloAnterior)
+                        .ExecuteUpdateAsync(actualizacion =>
+                            actualizacion.SetProperty(p => p.Libro, libro.Titulo));
+                }
+
                 existente.Titulo = libro.Titulo;
                 existente.Autor = libro.Autor;
                 existente.AnoPublicacion = libro.AnoPublicacion;
-                existente.CantidadDisponible = libro.CantidadDisponible;
             }
 
             await contexto.SaveChangesAsync();
