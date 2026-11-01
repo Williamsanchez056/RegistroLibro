@@ -54,6 +54,15 @@ public class EstudiantesService : IServiceResult<Estudiante, int>
                 if (existente is null)
                     return Result.Failure(new Error("NOT_FOUND", "No se encontro el estudiante."));
 
+                if (!string.Equals(existente.Nombres, estudiante.Nombres, StringComparison.Ordinal))
+                {
+                    var nombreAnterior = existente.Nombres;
+                    await contexto.Prestamos
+                        .Where(p => p.Estudiante == nombreAnterior)
+                        .ExecuteUpdateAsync(actualizacion =>
+                            actualizacion.SetProperty(p => p.Estudiante, estudiante.Nombres));
+                }
+
                 existente.Nombres = estudiante.Nombres;
                 existente.Direccion = estudiante.Direccion;
                 existente.Email = estudiante.Email;
